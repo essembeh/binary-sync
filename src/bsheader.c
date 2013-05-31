@@ -10,27 +10,33 @@
 #include <string.h>
 
 #include "bsheader.h"
+#include "common.h"
 
-BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize,
-		char* pUserData) {
-	BSHeader* pOut = malloc(sizeof(BSHeader));
+BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserData) {
+	BSHeader* pOut = NULL;
+
+	pOut = malloc(sizeof(BSHeader));
 	pOut->version = 1;
 	pOut->type = type;
 	pOut->hashFunction = ADLER32;
 	pOut->totalSize = totalSize;
 	pOut->blockSize = blockSize;
-	if (pUserData == NULL ) {
-		pOut->userDataLength = 0;
-		pOut->pUserData = NULL;
-	} else {
-		pOut->userDataLength = strlen(pUserData);
-		pOut->pUserData = pUserData;
-	}
+	updateUserData(pOut, pUserData);
+
 	return pOut;
+}
+
+BSHeader* deleteHeader(BSHeader* pHeader) {
+	if (pHeader != NULL) {
+		autofree(pHeader->pUserData);
+		autofree(pHeader);
+	}
+	return NULL;
 }
 
 BSHeader* readHeader(FILE* input) {
 	BSHeader* pOut = NULL;
+
 	if (input != NULL ) {
 		pOut = malloc(sizeof(BSHeader));
 		// Read header without user data
@@ -50,6 +56,7 @@ BSHeader* readHeader(FILE* input) {
 			pOut->userDataLength = 0;
 		}
 	}
+
 	return pOut;
 }
 
@@ -60,12 +67,25 @@ int writeHeader(FILE* output, BSHeader* pHeader) {
 	if (fwrite(pHeader, HEADER_SIZE_WITHOUT_USER_DATA, 1, output) != 1) {
 		return 10;
 	}
-	if (pHeader->userDataLength > 0
-			&& fwrite(pHeader->pUserData, pHeader->userDataLength, 1, output)
-					!= 1) {
+	if (pHeader->userDataLength > 0 && fwrite(pHeader->pUserData, pHeader->userDataLength, 1, output) != 1) {
 		return 11;
 	}
 	return 0;
+}
+
+
+void updateUserData(BSHeader* pHeader, char* pUserData) {
+	if (pHeader != NULL) {
+		autofree(pHeader->pUserData);
+		if (pUserData == NULL) {
+			pHeader->userDataLength = 0;
+		} else {
+			pHeader->userDataLength = strlen(pUserData) + 1;
+			pHeader->pUserData = malloc(pHeader->userDataLength);
+			bzero(pHeader->pUserData, pHeader->userDataLength);
+			memcpy(pHeader->pUserData, pUserData, strlen(pUserData));
+		}
+	}
 }
 
 void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString) {

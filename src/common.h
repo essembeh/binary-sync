@@ -8,10 +8,10 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
-int bs_info(int argc, char** argv);
-int bs_checksum(int argc, char** argv);
-int bs_request(int argc, char** argv);
-int bs_data(int argc, char** argv);
-int bs_apply(int argc, char** argv);
+#define autofree(a) if (a != NULL) { free(a); a = NULL; }
+#define autoclose(a) if (a != NULL) { fclose(a); a = NULL; }
+
+#define throw(RC, MESSAGE, LABEL) perror(MESSAGE); rc = RC; goto LABEL;
+#define throwiferror(RC, MESSAGE, LABEL)  if (rc && 1) { perror(MESSAGE); rc = RC; goto LABEL; }
 
 #endif /* COMMON_H_ */

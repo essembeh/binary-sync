@@ -7,106 +7,127 @@
 #include "adler32.h"
 #include "block.h"
 
-int bs_checksum(int argc, char** argv) {
+int parse_args(int argc, char** argv, uint64_t* pBlockSize, char** ppSource, char** ppOutput, char** ppUserdata) {
+	// Default values
+	*ppOutput = NULL;
+	*ppSource = NULL;
+	*ppUserdata = NULL;
+	*pBlockSize = DEFAULT_BLOCK_SIZE;
 
-	uint64_t blockSize = 0;
-	char* pOutputChecksumFilename = NULL;
-	char* pInputSourceFilename = NULL;
-	char* pUserData = NULL;
+	printf("Parse arguments");
 
 	opterr = 0;
-
 	int c;
-
 	while (1) {
 		int option_index = 0;
 		static struct option long_options[] = { { "block-size",
-				required_argument, 0, 'b' }, { "output", required_argument, 0,
-				'o' }, { "source", required_argument, 0, 's' }, { "user-data",
+				required_argument, 0, 'b' }, { "source", required_argument, 0,
+				's' }, { "output", required_argument, 0, 'o' }, { "user-data",
 				required_argument, 0, 'u' }, { 0, 0, 0, 0 } };
 
-		c = getopt_long(argc, argv, "b:o:s:u:", long_options, &option_index);
+		c = getopt_long(argc, argv, "b:s:o:u:", long_options, &option_index);
 		if (c == -1) {
 			break;
 		}
 
 		switch (c) {
 		case 'b':
-			sscanf(optarg, "%"PRIu64, &blockSize);
-			printf("Using block size: %"PRIu64"\n", blockSize);
+			sscanf(optarg, "%"PRIu64, pBlockSize);
+			printf("Using block size: %"PRIu64"\n", *pBlockSize);
 			break;
 		case 'o':
-			pOutputChecksumFilename = optarg;
-			printf("Output checksum file: %s\n", pOutputChecksumFilename);
+			*ppOutput = optarg;
+			printf("Output checksum file: %s\n", *ppOutput);
 			break;
 		case 's':
-			pInputSourceFilename = optarg;
-			printf("Input source file: %s\n", pInputSourceFilename);
+			*ppSource = optarg;
+			printf("Input source file: %s\n", *ppSource);
 			break;
 		case 'u':
-			pUserData = optarg;
-			printf("User data: %s\n", pUserData);
+			*ppUserdata = optarg;
+			printf("User data: %s\n", *ppUserdata);
 			break;
 		default:
 			printf("Invalid option\n");
 		}
 	}
 
-	if (pInputSourceFilename == NULL || pOutputChecksumFilename == NULL
-			|| blockSize <= 0) {
+	if (*ppOutput == NULL || *ppSource == NULL ) {
 		return EXIT_FAILURE;
 	}
+	return EXIT_SUCCESS;
+}
+int bs_checksum(int argc, char** argv) {
+
+	int rc = 0;
+	uint64_t blockSize = 0;
+	uint64_t totalSize = 0;
+	uint64_t blockCount = 0;
+	uint64_t lastBlockSize = 0;
+	uint64_t currentBlock = 0;
+	char* pOutputChecksumFilename = NULL;
+	char* pInputSourceFilename = NULL;
+	char* pUserData = NULL;
+	FILE* pSource = NULL;
+	FILE* pChecksum = NULL;
+	BSHeader* pHeader = NULL;
+
+	rc = parse_args(argc, argv,
+			&blockSize,
+			&pInputSourceFilename,
+			&pOutputChecksumFilename,
+			&pUserData);
+	throwiferror(rc, "Invalid arguments", END);;
 
 	// Open source file
-	FILE* pSource = fopen(pInputSourceFilename, "r");
+	pSource = fopen(pInputSourceFilename, "r");
 	if (pSource == NULL ) {
-		perror("Error opening source file\n");
-		exit(10);
+		throw(10, "Error opening source file\n", END);
 	}
+
 	// read size
 	fseek(pSource, 0L, SEEK_END);
-	uint64_t totalSize = ftell(pSource);
+	totalSize = ftell(pSource);
 	fseek(pSource, 0L, SEEK_SET);
 
 	// Create header
-	BSHeader* pHeader = newHeader(CHECKSUM, totalSize, blockSize, pUserData);
+	pHeader = newHeader(CHECKSUM, totalSize, blockSize, pUserData);
 	printHeaderInformation(pHeader, TRUE);
 
 	// Open checksum file
-	FILE* pChecksum = fopen(pOutputChecksumFilename, "w");
+	pChecksum = fopen(pOutputChecksumFilename, "w");
 	if (pChecksum == NULL ) {
-		perror("Error opening checksum\n");
-		exit(10);
+		throw(11, "Error opening checksum\n", END);
 	}
 
 	// Write header
-	int rc = writeHeader(pChecksum, pHeader);
-	exitrc(rc, "Error writing checksum");
+	rc = writeHeader(pChecksum, pHeader);
+	throwiferror(rc, "Error writing checksum\n", END);
 
-	uint64_t blockCount = getBlockCount(pHeader);
-	uint64_t lastBlockSize = getLastBlockSize(pHeader);
+	blockCount = getBlockCount(pHeader);
+	lastBlockSize = getLastBlockSize(pHeader);
 
-	printf("Total block count: %"PRIu64", last block size: %"PRIu64"\n",
-			blockCount, lastBlockSize);
+	printf("Total block count: %"PRIu64", last block size: %"PRIu64"\n", blockCount, lastBlockSize);
 
 	// Read source file
 	void* buffer = malloc(blockSize);
-	uint64_t currentBlockIndex = 0;
 	while (1) {
 		size_t len = fread(buffer, 1, blockSize, pSource);
 		if (len <= 0) {
 			break;
 		}
-		printProgress(++currentBlockIndex, blockCount, "Checksum");
+		printProgress(++currentBlock, blockCount, "Checksum");
 		uint32_t checksum = getChecksum(buffer, len, pHeader);
 		if (fwrite(&checksum, sizeof(uint32_t), 1, pChecksum) != 1) {
-			perror("Error writing checksum\n");
-			exit(10);
+			throw(10, "Error writing checksum\n", END);
 		}
 	}
 	printf("Checksum complete\n");
-	autofree(pHeader);
-	fclose(pChecksum);
-	fclose(pSource);
-	return EXIT_SUCCESS;
+
+END:
+	pHeader = deleteHeader(pHeader);
+	autoclose(pChecksum);
+	autoclose(pSource);
+
+	return rc;
 }

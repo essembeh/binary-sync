@@ -13,8 +13,15 @@
 #include <zlib.h>
 
 #include "common.h"
+#include "functions.h"
+
+int test (int a) {
+	return a;
+}
 
 int main(int argc, char** argv) {
 	//return bs_info(argc, argv);
 	return bs_checksum(argc, argv);
+
+	return EXIT_SUCCESS;
 }

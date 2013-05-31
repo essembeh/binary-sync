@@ -10,12 +10,13 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#define autofree(a) if (a != NULL) { free(a); a = NULL; }
-#define exitrc(rc, message) if (rc != 0) { printf(message"\n"); exit (rc); }
 
 #define BOOL char
 #define TRUE 1
 #define FALSE 0
+
+
+#define DEFAULT_BLOCK_SIZE 1048576
 
 typedef enum {
 	CHECKSUM = 10, REQUEST = 20, DATA = 30
@@ -39,7 +40,9 @@ typedef struct {
 
 BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserData);
 BSHeader* readHeader(FILE* input);
+BSHeader* deleteHeader(BSHeader* pHeader);
 int writeHeader(FILE* output, BSHeader* pHeader);
+void updateUserData(BSHeader* pHeader, char* pUserData);
 void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString);
 
 #endif /* BSHEADER_H_ */
