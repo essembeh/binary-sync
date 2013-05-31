@@ -11,6 +11,26 @@
 
 #include "bsheader.h"
 
+
+
+BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserData) {
+	BSHeader* pOut = malloc(sizeof(BSHeader));
+	pOut->version = 1;
+	pOut->type = type;
+	pOut->hashFunction = ADLER32;
+	pOut->totalSize = totalSize;
+	pOut->blockSize = blockSize;
+	if (pUserData == NULL) {
+		pOut->userDataLength = 0;
+		pOut->pUserData = NULL;
+	} else {
+		pOut->userDataLength = strlen(pUserData);
+		pOut->pUserData = pUserData;
+	}
+	return pOut;
+}
+
+
 BSHeader* readHeader(FILE* input) {
 	BSHeader* pOut = NULL;
 	if (input != NULL ) {
@@ -48,21 +68,18 @@ int writeHeader(FILE* output, BSHeader* pHeader) {
 	return 0;
 }
 
-void printHeaderInformation(BSHeader* pHeader, char printUserDataAsString) {
+void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString) {
 	if (pHeader != NULL ) {
-		printf("\t%16s: %u\n", "Version", pHeader->version);
+		printf("\t%16s: %"PRIu8"\n", "Version", pHeader->version);
 		switch (pHeader->type) {
-		case CHECKSUM_REQUEST:
-			printf("\t%16s: CHECKSUM_REQUEST\n", "Type");
+		case CHECKSUM:
+			printf("\t%16s: CHECKSUM\n", "Type");
 			break;
-		case CHECKSUM_FILE:
-			printf("\t%16s: CHECKSUM_FILE\n", "Type");
+		case REQUEST:
+			printf("\t%16s: REQUEST\n", "Type");
 			break;
-		case DATA_REQUEST:
-			printf("\t%16s: DATA_REQUEST\n", "Type");
-			break;
-		case DATA_FILE:
-			printf("\t%16s: DATA_FILE\n", "Type");
+		case DATA:
+			printf("\t%16s: DATA\n", "Type");
 			break;
 		default:
 			printf("\tType: UNKNOWN\n");
@@ -77,10 +94,10 @@ void printHeaderInformation(BSHeader* pHeader, char printUserDataAsString) {
 		default:
 			printf("\tHash function: UNKNOWN\n");
 		}
-		printf("\t%16s: %u\n", "Total size", pHeader->totalSize);
-		printf("\t%16s: %u\n", "Block size", pHeader->blockSize);
-		printf("\t%16s: %u\n", "User data length", pHeader->userDataLength);
-		if (pHeader->userDataLength > 0 && printUserDataAsString > 0) {
+		printf("\t%16s: %"PRIu64"\n", "Total size", pHeader->totalSize);
+		printf("\t%16s: %"PRIu64"\n", "Block size", pHeader->blockSize);
+		printf("\t%16s: %"PRIu32"\n", "User data length", pHeader->userDataLength);
+		if (pHeader->userDataLength > 0 && printUserDataAsString == TRUE) {
 			char* string = malloc(pHeader->userDataLength + 1);
 			memcpy(string, pHeader->pUserData, pHeader->userDataLength);
 			string[pHeader->userDataLength] = '\0';

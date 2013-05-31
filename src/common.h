@@ -8,7 +8,6 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
-
 int bs_info(int argc, char** argv);
 int bs_checksum(int argc, char** argv);
 int bs_request(int argc, char** argv);

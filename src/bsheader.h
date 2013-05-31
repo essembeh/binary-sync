@@ -11,9 +11,12 @@
 #include <stdio.h>
 
 #define autofree(a) if (a != NULL) { free(a); a = NULL; }
+#define BOOL char
+#define TRUE 1
+#define FALSE 0
 
 typedef enum {
-	CHECKSUM_REQUEST = 10, CHECKSUM_FILE = 20, DATA_REQUEST = 30, DATA_FILE = 40
+	CHECKSUM = 10, REQUEST = 20, DATA = 30
 } BSType;
 
 typedef enum {
@@ -24,16 +27,17 @@ typedef struct {
 	uint8_t version;
 	uint8_t type;
 	uint8_t hashFunction;
-	uint32_t totalSize;
-	uint32_t blockSize;
+	uint64_t totalSize;
+	uint64_t blockSize;
 	uint32_t userDataLength;
 	void* pUserData;
 } BSHeader;
 
 #define HEADER_SIZE_WITHOUT_USER_DATA sizeof(BSHeader) - 1
 
+BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserData);
 BSHeader* readHeader(FILE* input);
 int writeHeader(FILE* output, BSHeader* pHeader);
-void printHeaderInformation(BSHeader* pHeader, char printUserDataAsString);
+void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString);
 
 #endif /* BSHEADER_H_ */
