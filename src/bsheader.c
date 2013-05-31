@@ -11,16 +11,15 @@
 
 #include "bsheader.h"
 
-
-
-BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserData) {
+BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize,
+		char* pUserData) {
 	BSHeader* pOut = malloc(sizeof(BSHeader));
 	pOut->version = 1;
 	pOut->type = type;
 	pOut->hashFunction = ADLER32;
 	pOut->totalSize = totalSize;
 	pOut->blockSize = blockSize;
-	if (pUserData == NULL) {
+	if (pUserData == NULL ) {
 		pOut->userDataLength = 0;
 		pOut->pUserData = NULL;
 	} else {
@@ -29,7 +28,6 @@ BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize, char* p
 	}
 	return pOut;
 }
-
 
 BSHeader* readHeader(FILE* input) {
 	BSHeader* pOut = NULL;
@@ -62,7 +60,9 @@ int writeHeader(FILE* output, BSHeader* pHeader) {
 	if (fwrite(pHeader, HEADER_SIZE_WITHOUT_USER_DATA, 1, output) != 1) {
 		return 10;
 	}
-	if (fwrite(pHeader->pUserData, pHeader->userDataLength, 1, output) != 1) {
+	if (pHeader->userDataLength > 0
+			&& fwrite(pHeader->pUserData, pHeader->userDataLength, 1, output)
+					!= 1) {
 		return 11;
 	}
 	return 0;
@@ -96,7 +96,8 @@ void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString) {
 		}
 		printf("\t%16s: %"PRIu64"\n", "Total size", pHeader->totalSize);
 		printf("\t%16s: %"PRIu64"\n", "Block size", pHeader->blockSize);
-		printf("\t%16s: %"PRIu32"\n", "User data length", pHeader->userDataLength);
+		printf("\t%16s: %"PRIu32"\n", "User data length",
+				pHeader->userDataLength);
 		if (pHeader->userDataLength > 0 && printUserDataAsString == TRUE) {
 			char* string = malloc(pHeader->userDataLength + 1);
 			memcpy(string, pHeader->pUserData, pHeader->userDataLength);

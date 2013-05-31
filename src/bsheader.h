@@ -11,6 +11,8 @@
 #include <stdio.h>
 
 #define autofree(a) if (a != NULL) { free(a); a = NULL; }
+#define exitrc(rc, message) if (rc != 0) { printf(message"\n"); exit (rc); }
+
 #define BOOL char
 #define TRUE 1
 #define FALSE 0

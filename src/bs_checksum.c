@@ -75,36 +75,37 @@ int bs_checksum(int argc, char** argv) {
 	// Open checksum file
 	FILE* pChecksum = fopen(pOutputChecksumFilename, "w");
 	if (pChecksum == NULL ) {
-		perror("Error writing checksum\n");
+		perror("Error opening checksum\n");
 		exit(10);
 	}
 
 	// Write header
-	if (writeHeader(pChecksum, pHeader) != 0) {
-		perror("Error writing checksum\n");
-		exit(10);
-	}
+	int rc = writeHeader(pChecksum, pHeader);
+	exitrc(rc, "Error writing checksum");
 
 	uint64_t blockCount = getBlockCount(pHeader);
 	uint64_t lastBlockSize = getLastBlockSize(pHeader);
 
-	printf("Total block count: %"PRIu64", last block size: %"PRIu64"\n", blockCount, lastBlockSize);
+	printf("Total block count: %"PRIu64", last block size: %"PRIu64"\n",
+			blockCount, lastBlockSize);
 
 	// Read source file
 	void* buffer = malloc(blockSize);
+	uint64_t currentBlockIndex = 0;
 	while (1) {
 		size_t len = fread(buffer, 1, blockSize, pSource);
-		if (len > 0) {
-			uint32_t checksum = getChecksum(buffer, len, pHeader);
-			if (fwrite(&checksum, sizeof(uint32_t), 1, pChecksum) != 1) {
-				perror("Error writing checksum\n");
-				exit(10);
-			}
-		} else {
+		if (len <= 0) {
 			break;
 		}
+		printProgress(++currentBlockIndex, blockCount, "Checksum");
+		uint32_t checksum = getChecksum(buffer, len, pHeader);
+		if (fwrite(&checksum, sizeof(uint32_t), 1, pChecksum) != 1) {
+			perror("Error writing checksum\n");
+			exit(10);
+		}
 	}
-
+	printf("Checksum complete\n");
+	autofree(pHeader);
 	fclose(pChecksum);
 	fclose(pSource);
 	return EXIT_SUCCESS;
