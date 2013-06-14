@@ -8,10 +8,26 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
+#define TRY \
+	char* exceptionMessage = NULL; \
+
+#define THROW(message) \
+	exceptionMessage = message; \
+	goto CATCH_EXCEPTION; \
+
+
+#define CATCH \
+	goto NO_EXCEPTION; \
+	CATCH_EXCEPTION: \
+	printf("Error: %s\n", exceptionMessage); \
+
+
+#define FINALLY \
+	NO_EXCEPTION: \
+
+
 #define autofree(a) if (a != NULL) { free(a); a = NULL; }
 #define autoclose(a) if (a != NULL) { fclose(a); a = NULL; }
 
-#define throw(RC, MESSAGE, LABEL) perror(MESSAGE); rc = RC; goto LABEL;
-#define throwiferror(RC, MESSAGE, LABEL)  if (rc && 1) { perror(MESSAGE); rc = RC; goto LABEL; }
 
 #endif /* COMMON_H_ */

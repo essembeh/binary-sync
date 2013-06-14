@@ -57,6 +57,7 @@ int parse_args(int argc, char** argv, uint64_t* pBlockSize, char** ppSource, cha
 	}
 	return EXIT_SUCCESS;
 }
+
 int bs_checksum(int argc, char** argv) {
 
 	int rc = 0;
@@ -72,17 +73,22 @@ int bs_checksum(int argc, char** argv) {
 	FILE* pChecksum = NULL;
 	BSHeader* pHeader = NULL;
 
+TRY;
+
 	rc = parse_args(argc, argv,
 			&blockSize,
 			&pInputSourceFilename,
 			&pOutputChecksumFilename,
 			&pUserData);
-	throwiferror(rc, "Invalid arguments", END);;
+	if (rc != 0) {
+		THROW("Invalid arguments");
+	}
 
 	// Open source file
 	pSource = fopen(pInputSourceFilename, "r");
 	if (pSource == NULL ) {
-		throw(10, "Error opening source file\n", END);
+		rc = 10;
+		THROW("Error opening source file");
 	}
 
 	// read size
@@ -97,12 +103,16 @@ int bs_checksum(int argc, char** argv) {
 	// Open checksum file
 	pChecksum = fopen(pOutputChecksumFilename, "w");
 	if (pChecksum == NULL ) {
-		throw(11, "Error opening checksum\n", END);
+		rc = 10;
+		THROW("Error opening checksum");
 	}
 
 	// Write header
 	rc = writeHeader(pChecksum, pHeader);
-	throwiferror(rc, "Error writing checksum\n", END);
+	if (rc != 0) {
+		THROW("Error writing checksum");
+
+	}
 
 	blockCount = getBlockCount(pHeader);
 	lastBlockSize = getLastBlockSize(pHeader);
@@ -119,15 +129,24 @@ int bs_checksum(int argc, char** argv) {
 		printProgress(++currentBlock, blockCount, "Checksum");
 		uint32_t checksum = getChecksum(buffer, len, pHeader);
 		if (fwrite(&checksum, sizeof(uint32_t), 1, pChecksum) != 1) {
-			throw(10, "Error writing checksum\n", END);
+			rc = 100;
+			THROW("Error writing checksum")
 		}
 	}
 	printf("Checksum complete\n");
 
-END:
+CATCH;
+
+FINALLY;
+
 	pHeader = deleteHeader(pHeader);
 	autoclose(pChecksum);
 	autoclose(pSource);
 
 	return rc;
+}
+
+
+int main(int argc, char** argv) {
+	return bs_checksum(argc, argv);
 }

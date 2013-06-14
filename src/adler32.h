@@ -8,7 +8,7 @@
 #ifndef ADLER32_H_
 #define ADLER32_H_
 
-#include "zlib/zutil.h"
+#include "zutil.h"
 
 uLong ZEXPORT adler32(uLong adler, const Bytef *buf, uInt len);
 

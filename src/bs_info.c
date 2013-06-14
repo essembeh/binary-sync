@@ -30,3 +30,7 @@ int bs_info(int argc, char** argv) {
 	}
 	return EXIT_SUCCESS;
 }
+
+int main(int argc, char** argv) {
+	return bs_info(argc, argv);
+}

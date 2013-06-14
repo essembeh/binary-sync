@@ -60,6 +60,7 @@ int bs_request(int argc, char** argv) {
 		return EXIT_FAILURE;
 	}
 
+
 /*
 	// Open source file
 	FILE* pSource = fopen(pInputSourceFilename, "r");
