@@ -7,112 +7,136 @@
 #include "adler32.h"
 #include "block.h"
 
-int bs_request(int argc, char** argv) {
 
-	uint64_t blockSize = 0;
-	char* pFromChecksumFilename = NULL;
-	char* pToChecksumFilename = NULL;
-	char* pOutputRequestFilename = NULL;
-	char* pUserData = NULL;
+
+int parse_args(int argc, char** argv, char** ppLeft, char** ppRight, char** ppOutput, char** ppUserdata) {
+	// Default values
+	*ppOutput = NULL;
+	*ppLeft = NULL;
+	*ppRight = NULL;
+	*ppUserdata = NULL;
+
+	printf("Parse arguments");
 
 	opterr = 0;
-
 	int c;
-
 	while (1) {
 		int option_index = 0;
 		static struct option long_options[] = {
-				{ "from", required_argument, 0, 'f' },
-				{ "to", required_argument, 0, 't' },
+				{ "left", required_argument, 0, 'l' },
+				{ "right", required_argument, 0, 'r' },
 				{ "output", required_argument, 0, 'o' },
 				{ "user-data", required_argument, 0, 'u' },
 				{ 0, 0, 0, 0 } };
 
-		c = getopt_long(argc, argv, "f:t:o:u:", long_options, &option_index);
+		c = getopt_long(argc, argv, "l:r:o:u:", long_options, &option_index);
 		if (c == -1) {
 			break;
 		}
 
 		switch (c) {
-		case 'f':
-			pFromChecksumFilename = optarg;
-			printf("From checksum file: %s\n", pFromChecksumFilename);
+		case 'l':
+			*ppLeft = optarg;
+			printf("Left checksum file: %s\n", *ppLeft);
 			break;
-		case 't':
-			pToChecksumFilename = optarg;
-			printf("To checksum file: %s\n", pToChecksumFilename);
+		case 'r':
+			*ppRight = optarg;
+			printf("Right checksum file: %s\n", *ppRight);
 			break;
 		case 'o':
-			pOutputRequestFilename = optarg;
-			printf("Output request file: %s\n", pOutputRequestFilename);
+			*ppOutput = optarg;
+			printf("Output file: %s\n", *ppOutput);
 			break;
 		case 'u':
-			pUserData = optarg;
-			printf("User data: %s\n", pUserData);
+			*ppUserdata = optarg;
+			printf("User data: %s\n", *ppUserdata);
 			break;
 		default:
 			printf("Invalid option\n");
 		}
 	}
 
-	if (pFromChecksumFilename == NULL || pToChecksumFilename == NULL
-			|| pOutputRequestFilename == NULL) {
+	if (*ppOutput == NULL || *ppLeft == NULL  || *ppRight == NULL ) {
 		return EXIT_FAILURE;
 	}
+	return EXIT_SUCCESS;
+}
 
+int bs_request(int argc, char** argv) {
 
-/*
-	// Open source file
-	FILE* pSource = fopen(pInputSourceFilename, "r");
-	if (pSource == NULL ) {
-		perror("Error opening source file\n");
-		exit(10);
+	int rc = 0;
+	uint64_t blockSize = 0;
+	uint64_t totalSize = 0;
+	uint64_t blockCount = 0;
+	uint64_t lastBlockSize = 0;
+	uint64_t currentBlock = 0;
+	char* pOutputRequestFilename = NULL;
+	char* pLeftChecksumFilename = NULL;
+	char* pRightChecksumFilename = NULL;
+	char* pUserData = NULL;
+	FILE* pLeft= NULL;
+	FILE* pRight = NULL;
+	FILE* pOutput = NULL;
+	BSHeader* pHeaderLeft = NULL;
+	BSHeader* pHeaderRight = NULL;
+	BSHeader* pHeaderOut = NULL;
+
+TRY;
+
+	rc = parse_args(argc, argv,
+			&pLeftChecksumFilename,
+			&pRightChecksumFilename,
+			&pOutputRequestFilename,
+			&pUserData);
+
+	if (rc != 0) {
+		THROW("Invalid arguments", 1);
 	}
-	// read size
-	fseek(pSource, 0L, SEEK_END);
-	uint64_t totalSize = ftell(pSource);
-	fseek(pSource, 0L, SEEK_SET);
+
+	// Open files
+	pLeft = fopen(pLeftChecksumFilename, "r");
+	if (pLeft == NULL ) {
+		THROW("Error opening left checksum", 10);
+	}
+	pHeaderLeft = readHeader(pLeft);
+
+	pRight = fopen(pRightChecksumFilename, "r");
+	if (pRight == NULL ) {
+		THROW("Error opening right checksum", 11);
+	}
+	pHeaderRight = readHeader(pRight);
 
 	// Create header
-	BSHeader* pHeader = newHeader(CHECKSUM, totalSize, blockSize, pUserData);
-	printHeaderInformation(pHeader, TRUE);
+	if (pUserData == NULL) {
+		pUserData = pHeaderRight->pUserData;
+	}
+	pHeaderOut = newHeader(REQUEST, pHeaderRight->totalSize, pHeaderRight->blockSize, pUserData);
+	printHeaderInformation(pHeaderOut, TRUE);
 
 	// Open checksum file
-	FILE* pChecksum = fopen(pOutputChecksumFilename, "w");
-	if (pChecksum == NULL ) {
-		perror("Error opening checksum\n");
-		exit(10);
+	pOutput = fopen(pOutputRequestFilename, "w");
+	if (pOutput == NULL ) {
+		THROW("Error opening output request file", 12);
 	}
 
 	// Write header
-	int rc = writeHeader(pChecksum, pHeader);
-	exitrc(rc, "Error writing checksum");
-
-	uint64_t blockCount = getBlockCount(pHeader);
-	uint64_t lastBlockSize = getLastBlockSize(pHeader);
-
-	printf("Total block count: %"PRIu64", last block size: %"PRIu64"\n",
-			blockCount, lastBlockSize);
-
-	// Read source file
-	void* buffer = malloc(blockSize);
-	uint64_t currentBlockIndex = 0;
-	while (1) {
-		size_t len = fread(buffer, 1, blockSize, pSource);
-		if (len <= 0) {
-			break;
-		}
-		printProgress(++currentBlockIndex, blockCount, "Checksum");
-		uint32_t checksum = getChecksum(buffer, len, pHeader);
-		if (fwrite(&checksum, sizeof(uint32_t), 1, pChecksum) != 1) {
-			perror("Error writing checksum\n");
-			exit(10);
-		}
+	if (writeHeader(pOutput, pHeaderOut)) {
+		THROW("Error writing checksum", 20);
 	}
-	printf("Checksum complete\n");
-	autofree(pHeader);
-	fclose(pChecksum);
-	fclose(pSource);
-*/
-	return EXIT_SUCCESS;
+
+CATCH;
+
+FINALLY;
+	pHeaderLeft = deleteHeader(pHeaderLeft);
+	pHeaderRight = deleteHeader(pHeaderRight);
+	pHeaderOut = deleteHeader(pHeaderOut);
+	autoclose(pLeft);
+	autoclose(pRight);
+	autoclose(pOutput);
+
+	return exceptionId;
+}
+
+int main (int argc, char** argv) {
+	return bs_request(argc, argv);
 }

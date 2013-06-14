@@ -81,14 +81,13 @@ TRY;
 			&pOutputChecksumFilename,
 			&pUserData);
 	if (rc != 0) {
-		THROW("Invalid arguments");
+		THROW("Invalid arguments", 1);
 	}
 
 	// Open source file
 	pSource = fopen(pInputSourceFilename, "r");
 	if (pSource == NULL ) {
-		rc = 10;
-		THROW("Error opening source file");
+		THROW("Error opening source file", 10);
 	}
 
 	// read size
@@ -103,15 +102,13 @@ TRY;
 	// Open checksum file
 	pChecksum = fopen(pOutputChecksumFilename, "w");
 	if (pChecksum == NULL ) {
-		rc = 10;
-		THROW("Error opening checksum");
+		THROW("Error opening checksum", 10);
 	}
 
 	// Write header
 	rc = writeHeader(pChecksum, pHeader);
 	if (rc != 0) {
-		THROW("Error writing checksum");
-
+		THROW("Error writing checksum", rc);
 	}
 
 	blockCount = getBlockCount(pHeader);
@@ -129,8 +126,7 @@ TRY;
 		printProgress(++currentBlock, blockCount, "Checksum");
 		uint32_t checksum = getChecksum(buffer, len, pHeader);
 		if (fwrite(&checksum, sizeof(uint32_t), 1, pChecksum) != 1) {
-			rc = 100;
-			THROW("Error writing checksum")
+			THROW("Error writing checksum", 100)
 		}
 	}
 	printf("Checksum complete\n");
@@ -143,7 +139,7 @@ FINALLY;
 	autoclose(pChecksum);
 	autoclose(pSource);
 
-	return rc;
+	return exceptionId;
 }
 
 

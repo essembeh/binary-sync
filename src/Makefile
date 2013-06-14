@@ -1,6 +1,9 @@
-all: bs-info bs-checksum
+all: bs-info bs-checksum bs-request
 
 
+bs-request: bs_request.o block.o adler32.o bsheader.o
+	gcc bs_request.o block.o adler32.o bsheader.o -o bs-request
+	
 bs-checksum: bs_checksum.o block.o adler32.o bsheader.o
 	gcc bs_checksum.o block.o adler32.o bsheader.o -o bs-checksum
 

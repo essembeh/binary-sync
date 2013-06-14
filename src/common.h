@@ -10,16 +10,18 @@
 
 #define TRY \
 	char* exceptionMessage = NULL; \
+	int exceptionId = 0; \
 
-#define THROW(message) \
+#define THROW(message, id) \
 	exceptionMessage = message; \
+	exceptionId = id; \
 	goto CATCH_EXCEPTION; \
 
 
 #define CATCH \
 	goto NO_EXCEPTION; \
 	CATCH_EXCEPTION: \
-	printf("Error: %s\n", exceptionMessage); \
+	printf("Error: %s, code:%d\n", exceptionMessage, exceptionId); \
 
 
 #define FINALLY \
