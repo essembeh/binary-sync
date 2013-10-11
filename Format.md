@@ -18,10 +18,8 @@ Hash size depends on the hash function used
 
 ### FIELDS
     uint8     VERSION          version of the binary format
-    uint8     TYPE             10: checksum request
-                               20: checksum file
-                               30: data request
-                               40: data file
+    uint8     TYPE             10: checksum file
+                               20: data file
     uint32     TOTAL_SIZE      the size of the master file (unused for a snapshot request)
     uint32     BLOCK_SIZE      the size used for blocks for hash computing or data.
     uint8      HASH_FUNCTION   'A': Adler32, 'C': CRC32
@@ -41,23 +39,6 @@ To identify the end of file
 
 ### FIELDS
     byte[4]    "FOOT"          arbitrary string
-
----
-
-# CHECKSUM REQUEST 
-
-### DESCRIPTION
-A **checksum file** is the list of block hashes from the original file.  
-A **checksum request** is used to request a partial **checksum file**. 
-
-### FIELDS
-    uint32     START_INDEX     request the hashes from block (inclusive) ...
-    uint32     STOP_INDEX      ... to block (inclusive)
-    ... (sequence can be repeated)
-    
-### EXAMPLE
-    (empty): if empty, all the file is requested
-    3 3 17 42: Request the hash of blocks 3, 17, 18, ..., 41 and 42
 
 ---
 
@@ -86,21 +67,7 @@ The size of hash depends on the hash function used.
         Hash of block 42 is 65042
 
 ---
-# DATA REQUEST 
 
-### DESCRIPTION
-Contains the list of block ids to be requested to the *master*.
-    
-### FIELDS
-    uint32     START_INDEX     request the hashes from block (inclusive) ...
-    uint32     STOP_INDEX      ... to block (inclusive)
-    ... (sequence can be repeated)
-    
-### EXAMPLE
-    (empty): if empty, no data requested
-    3 3 17 42: Request the data of blocks 3, 17, 18, ..., 41 and 42
-
---- 
 # DATA FILE
 
 ### DESCRIPTION

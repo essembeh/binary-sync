@@ -1,15 +1,17 @@
 all: bs-info bs-checksum bs-request
 
-
-bs-request: bs_request.o block.o adler32.o bsheader.o
-	gcc bs_request.o block.o adler32.o bsheader.o -o bs-request
+	
+bs-info: bs_info.o block.o adler32.o bsheader.o
+	gcc bs_info.o block.o adler32.o bsheader.o -o bs-info
 	
 bs-checksum: bs_checksum.o block.o adler32.o bsheader.o
 	gcc bs_checksum.o block.o adler32.o bsheader.o -o bs-checksum
 
-bs-info: bs_info.o block.o adler32.o bsheader.o
+bs-data: bs_data.o block.o adler32.o bsheader.o
 	gcc bs_info.o block.o adler32.o bsheader.o -o bs-info
 
+bs-apply: bs_apply.o block.o adler32.o bsheader.o
+	gcc bs_info.o block.o adler32.o bsheader.o -o bs-info
 
 common.o: common.c common.h
 	gcc -c common.c

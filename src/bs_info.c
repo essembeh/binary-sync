@@ -23,14 +23,13 @@ int bs_info(int argc, char** argv) {
 		} else {
 			printf("Cannot open file: %s\n", filename);
 		}
-		autofree(pHeader);
-		if (file != NULL ) {
-			fclose(file);
-		}
+		AUTOFREE(pHeader);
+		AUTOCLOSE(file);
 	}
-	return EXIT_SUCCESS;
+	return NO_ERROR;
 }
 
 int main(int argc, char** argv) {
+	printf("binary-sync: info\n");
 	return bs_info(argc, argv);
 }

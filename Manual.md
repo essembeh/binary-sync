@@ -1,12 +1,10 @@
 ## Manual for binary-sync tools
 
 ---
-Here are the convetion fot file extensions
+Here are the convetion for file extensions
 
-* **.ckr** will represent a **checksum request**
-* **.ckf** will represent a **checksum file**
-* **.dtr** will represent a **data request**
-* **.dtf** will represent a **data file**
+* **.sum** will represent a **checksum file**
+* **.data** will represent a **data file**
 
 
 ---
@@ -23,8 +21,8 @@ Here are the convetion fot file extensions
 Display informations of the given file, its header, its data.
 
 ### USAGE
-    bs-info sda.ckr
-> Display informations about the sda.ckr file
+    bs-info sda.sum
+> Display informations about the sda.sum file
 
 
 ---
@@ -35,16 +33,16 @@ Display informations of the given file, its header, its data.
     bs-checksum - Create a checksum file, ie a list of blocks checksums
 
 ### SYNOPSIS
-    bs-checksum [-b SIZE] [-u TEXT] -o FILE_CKF SOURCE
+    bs-checksum [-b SIZE] [-u TEXT] -o FILE_SUM SOURCE
 
 ### DESCRIPTION
-Create a FILE_CKF **checksum file** which contains the checksum of each SOURCE file block of size SIZE.
+Create a FILE_SUM **checksum file** which contains the checksum of each SOURCE file block of size SIZE.
 
 ### OPTIONS
     -b SIZE, --block-size=SIZE
         Used SIZE as block size
 
-    -o FILE_CKF, --output=FILE_CKF 
+    -o FILE_SUM, --output=FILE_SUM 
         Path to the generated file, the snapshot
 
     -u TEXT, --user-data=TEXT
@@ -55,96 +53,68 @@ Create a FILE_CKF **checksum file** which contains the checksum of each SOURCE f
 
 ### USAGE
     bp-checksum \
-        --output=checksum.ckf \
+        --output=sda.sum \
         --block=4096 
         --user-data="my disk: /dev/sda" \
         /dev/sda
-> Creates a **checksum file** for file /dev/sda whith checksums of all 4k blocks.
+> Creates a **checksum file** for file /dev/sda whith 4k blocks.
 
 
 ---
-# bs-data-request 
+# bs-data 
 
 ### NAME
->     bs-data-request - Create a data request
+>     bs-data - Create a data file
 
 ### SYNOPSIS
->     bp-data-request -f FILE_CKF -t FILE_CKF -o FILE_DTR [-u TEXT] 
+>     bp-data -f FILE_SUM -t FILE_SUM -o FILE_DATA [-u TEXT] 
 
 ### DESCRIPTION
-Create a FILE_DTR **data request** file from two FILE_CKF **checksum files**. 
-It's the list of all blocks which have different checksum in the given **checksum files**.
+Create a FILE_DATA **data file** file from two FILE_SUM **checksum files**. 
+The **data file** contains all blocks which checksum if different between **from** and **to** versions.
 
 ### OPTIONS
-    -f FILE_CKF, --from=FILE_CKF
+    -f FILE_SUM, --from=FILE_SUM
         The *remote* **checksum file**
 
-    -t FILE_CKF, --to=FILE_CKF
+    -t FILE_SUM, --to=FILE_SUM
         The *master* **checksum file**
 
     -o FILE_DTR, --output=FILE_DTR 
-        Path of the generated **data request** file
+        Path of the generated **data file**
 
     -u TEXT, --user-data=TEXT
         Overwrite user data with TEXT
 
 ### USAGE
     bs-data-request \
-        --from=remote.ckf \
-        --to=master.ckf \
-        --output=request.dtr
-> Creates a **data request** file to synchronise the file from the *remote* version to the *master* version.
+        --from=remote.sum \
+        --to=master.sum \
+        --output=update.data
+> Creates a **data file** to synchronise the file from the *remote* version to the *master* version.
 
 ---
-# bs-data
+# bs-apply
 
 ### NAME
-    bs-data - Create a data file
+    bs-apply - Update a file with the given data blocks
 
 ### SYNOPSIS
-    bp-data -i FILE_DTR -o FILE_DTF [-u TEXT] 
-
-### DESCRIPTION
-Create a FILE_DTF file containing the data of all given blocks from the FILE_DTR **data request** file.
-
-### OPTIONS
-    -i FILE_DTR, --input=FILE_DTR
-        The **data request** containing the list of blocks
-
-    -o FILE_DTF, --output=FILE_DTF
-        The **data file** destination
-
-    -u TEXT, --user-data=TEXT
-        Overwrite user data with TEXT
-
-### USAGE
-    bs-data \
-        --input=request.dtr \
-        --output=data.dtf 
-> Creates a **data file** containing all blocks from the given _request.dtr_
-
----
-# bs-data-apply
-
-### NAME
-    bs-data-apply - Update a file with the given data blocks
-
-### SYNOPSIS
-    bp-data-apply -i FILE_DTF -d FILE
+    bp-apply -i FILE_DATA -d FILE
 
 ### DESCRIPTION
 Modify the file with the given blocks contained in the **data file**.
 
 ### OPTIONS
-    -i FILE_DTF, --input=FILE_DTF
+    -i FILE_DATA, --input=FILE_DATA
         The **data file** containing the needed block data
 
     -d FILE, --destination=FILE
         The file to modify
         
 ### USAGE
-    bs-data-apply \
-        --input=data.dtf \
+    bs-apply \
+        --input=update.data \
         --destination=/dev/sda
 > Modify the file /dev/sda with the given blocks
 

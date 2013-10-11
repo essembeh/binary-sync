@@ -9,6 +9,7 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#include "error.h"
 
 
 #define BOOL char
@@ -17,32 +18,25 @@
 
 
 #define DEFAULT_BLOCK_SIZE 1048576
+#define USER_DATA_LEN 32
 
 typedef enum {
-	CHECKSUM = 10, REQUEST = 20, DATA = 30
+	CHECKSUM = 'C', DATA = 'D'
 } BSType;
-
-typedef enum {
-	ADLER32 = 'A', CRC32 = 'C'
-} BSHashFunction;
 
 typedef struct {
 	uint8_t version;
 	uint8_t type;
-	uint8_t hashFunction;
 	uint64_t totalSize;
 	uint64_t blockSize;
-	uint32_t userDataLength;
-	void* pUserData;
+	char pUserData[USER_DATA_LEN];
 } BSHeader;
-
-#define HEADER_SIZE_WITHOUT_USER_DATA sizeof(BSHeader) - 1
 
 BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserData);
 BSHeader* readHeader(FILE* input);
-BSHeader* deleteHeader(BSHeader* pHeader);
-int writeHeader(FILE* output, BSHeader* pHeader);
-void updateUserData(BSHeader* pHeader, char* pUserData);
+RETURN_CODE writeHeader(FILE* output, BSHeader* pHeader);
 void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString);
+uint64_t getBlockCount(BSHeader* pHeader);
+uint64_t getLastBlockSize(BSHeader* pHeader);
 
 #endif /* BSHEADER_H_ */
