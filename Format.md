@@ -18,13 +18,11 @@ Hash size depends on the hash function used
 
 ### FIELDS
     uint8     VERSION          version of the binary format
-    uint8     TYPE             10: checksum file
-                               20: data file
+    uint8     TYPE             'C': checksum file
+                               'D': data file
     uint32     TOTAL_SIZE      the size of the master file (unused for a snapshot request)
     uint32     BLOCK_SIZE      the size used for blocks for hash computing or data.
-    uint8      HASH_FUNCTION   'A': Adler32, 'C': CRC32
-    uint32     USER_DATA_LEN   can be 0 if no user data
-    byte[n]    USER_DATA       can be used to share extra info between remote and master
+    byte[32]   USER_DATA       can be used to share extra info between remote and master
     
 ### EXAMPLE
     1 20 1024 32 10 /dev/sda1: 

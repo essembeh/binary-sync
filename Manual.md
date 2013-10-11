@@ -45,18 +45,18 @@ Create a FILE_SUM **checksum file** which contains the checksum of each SOURCE f
     -o FILE_SUM, --output=FILE_SUM 
         Path to the generated file, the snapshot
 
-    -u TEXT, --user-data=TEXT
-        Write or overide user data with TEXT. 
+    -t FILE, --target=FILE
+        Path to the target file which will be processed
 
-    SOURCE
-        The file to process
+    -u TEXT, --user-data=TEXT
+        Write or overide user data with TEXT.
 
 ### USAGE
     bp-checksum \
         --output=sda.sum \
         --block=4096 
         --user-data="my disk: /dev/sda" \
-        /dev/sda
+        --target=/dev/sda
 > Creates a **checksum file** for file /dev/sda whith 4k blocks.
 
 
@@ -74,11 +74,14 @@ Create a FILE_DATA **data file** file from two FILE_SUM **checksum files**.
 The **data file** contains all blocks which checksum if different between **from** and **to** versions.
 
 ### OPTIONS
-    -f FILE_SUM, --from=FILE_SUM
+    -l FILE_SUM, --left=FILE_SUM
         The *remote* **checksum file**
 
-    -t FILE_SUM, --to=FILE_SUM
+    -r FILE_SUM, --right=FILE_SUM
         The *master* **checksum file**
+
+    -t FILE, --target=FILE
+        Path to the target file which will be processed
 
     -o FILE_DTR, --output=FILE_DTR 
         Path of the generated **data file**
@@ -88,8 +91,9 @@ The **data file** contains all blocks which checksum if different between **from
 
 ### USAGE
     bs-data-request \
-        --from=remote.sum \
-        --to=master.sum \
+        --left=remote.sum \
+        --right=master.sum \
+        --target=/dev/sda1 \
         --output=update.data
 > Creates a **data file** to synchronise the file from the *remote* version to the *master* version.
 
@@ -106,15 +110,15 @@ The **data file** contains all blocks which checksum if different between **from
 Modify the file with the given blocks contained in the **data file**.
 
 ### OPTIONS
-    -i FILE_DATA, --input=FILE_DATA
+    -d FILE_DATA, --data=FILE_DATA
         The **data file** containing the needed block data
 
-    -d FILE, --destination=FILE
-        The file to modify
+    -t FILE, --target=FILE
+        Path to the target file which will be processed
         
 ### USAGE
     bs-apply \
-        --input=update.data \
-        --destination=/dev/sda
+        --data=update.data \
+        --target=/dev/sda
 > Modify the file /dev/sda with the given blocks
 

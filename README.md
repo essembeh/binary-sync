@@ -11,9 +11,9 @@ There are two key ideas:
 It works by exchanging messages between a *master* and a *remote*.  
 Supposing the *master* has the version B and the *remote* has the version A, you want the *remote* to get the version B.
 
-1. The *master* makes a **checksum file** 
-2. The *remote* builds its own **checksum file**
-3. Comparing the two files, the *master* write needed blocks data ina **data file**
+1. The *remote* builds a **checksum file** and sends it to the master
+2. The *master* builds its own **checksum file** 
+3. Comparing the two files, the *master* write needed blocks data in a **data file**
 4. Tthe *remote* can write blocks from the **data file** 
 
 Here are the convetion fot file extensions
