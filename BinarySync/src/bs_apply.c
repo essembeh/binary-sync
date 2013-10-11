@@ -4,7 +4,6 @@
 
 #include "common.h"
 #include "bsheader.h"
-#include "adler32.h"
 #include "block.h"
 
 

@@ -15,3 +15,9 @@
 *.exe
 *.out
 *.app
+
+# Build config
+/BinarySync/bs-apply
+/BinarySync/bs-checksum
+/BinarySync/bs-data
+/BinarySync/bs-info

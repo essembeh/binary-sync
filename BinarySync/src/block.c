@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <zlib.h>
 
 #include "block.h"
-#include "adler32.h"
 
 uint32_t getChecksum(void* pData, size_t size) {
 	uint32_t out = adler32(0, pData, size);
