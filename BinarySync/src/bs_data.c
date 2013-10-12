@@ -20,7 +20,7 @@ RETURN_CODE parse_args(int argc, char** argv,
 	*ppOutputFilename = NULL;
 	*ppUserdata = NULL;
 
-	printf("Parse arguments");
+	printf("Parse arguments\n");
 
 	opterr = 0;
 	int c;
@@ -124,10 +124,11 @@ RETURN_CODE bs_data(int argc, char** argv) {
 
 	void* pBuffer = NULL;
 
-	TRY
+TRY
+
 	if ((rc = parse_args(argc, argv,
 						 &pLeftChecksumFilename,
-						 &pRightChecksumFile,
+						 &pRightChecksumFilename,
 						 &pTargetFilename,
 						 &pOutputFilename,
 						 &pUserdata)) != 0) {
@@ -135,10 +136,10 @@ RETURN_CODE bs_data(int argc, char** argv) {
 	}
 
 	// Open files
-	if ((pLeftChecksumFile = fopen(pLeftChecksumFilename, "r")) == NULL) {
+	if ((pLeftChecksumFile = fopen(pLeftChecksumFilename, "rb")) == NULL) {
 		THROW("Error opening left checksum file", OPEN_ERROR);
 	}
-	if ((pRightChecksumFile = fopen(pRightChecksumFilename, "r")) == NULL) {
+	if ((pRightChecksumFile = fopen(pRightChecksumFilename, "rb")) == NULL) {
 		THROW("Error opening right checksum file", OPEN_ERROR);
 	}
 
@@ -161,55 +162,57 @@ RETURN_CODE bs_data(int argc, char** argv) {
 	printHeaderInformation(pOutputHeader, TRUE);
 
 	// Open output file
-	if ((pOutputFile = fopen(pOutputFilename, "w")) == NULL) {
+	if ((pOutputFile = fopen(pOutputFilename, "wb")) == NULL) {
 		THROW("Error opening output data file", OPEN_ERROR);
 	}
 
 	// Write header
-	if ((rc = writeHeader(pOutputFile, pOutputFile)) != 0) {
+	if ((rc = writeHeader(pOutputFile, pOutputHeader)) != 0) {
 		THROW("Error writing checksum", rc);
 	}
 
 	// Open target file
-	if ((pTargetFile = fopen(pTargetFilename, "r")) == NULL) {
+	if ((pTargetFile = fopen(pTargetFilename, "rb")) == NULL) {
 		THROW("Error opening target", OPEN_ERROR);
 	}
 
 	uint64_t currentBlock;
-	uint32_t fromChecksum, toChecksum;
+	uint32_t leftChecksum, rightChecksum;
 	uint64_t blockCount = getBlockCount(pRightHeader);
 	printf("Block count: %"PRIu64"\n", blockCount);
 	for (currentBlock = 0; currentBlock < blockCount; currentBlock++) {
-		if (fread(&fromChecksum, sizeof(uint32_t), 1, pLeftChecksumFile) != 1 ||
-			fread(&toChecksum,   sizeof(uint32_t), 1, pRightChecksumFile) != 1) {
+		printf("--> current block: %"PRIu64"\n", currentBlock);
+		if (fread(&leftChecksum, sizeof(uint32_t), 1, pLeftChecksumFile) != 1 ||
+			fread(&rightChecksum,   sizeof(uint32_t), 1, pRightChecksumFile) != 1) {
 			THROW("Cannot read from checksum file", 100);
 		}
-		if (fromChecksum != toChecksum) {
+		if (leftChecksum != rightChecksum) {
 			printf("Checksum are different for block %"PRIu64", %"PRIu32" != %"PRIu32"\n",
-					currentBlock, fromChecksum, toChecksum);
+					currentBlock, leftChecksum, rightChecksum);
 			uint64_t size = getBufferSize(pOutputHeader, currentBlock);
 			pBuffer = readBlock(pOutputHeader, currentBlock, size, pTargetFile);
 			CHECK_PTR_THROW(pBuffer, "Error reading buffer");
 			if (pBuffer != NULL) {
 				printf("  Writing block %"PRIu64" -> size: %"PRIu64"\n", currentBlock, size);
-				// Check if block hav valid checksum
+				// Check if block have valid checksum
 				uint32_t currentChecksum = getChecksum(pBuffer, size);
-				if (currentChecksum != toChecksum) {
-					printf("  Target file does not march left checksum: %"PRIu32" != %"PRIu32"\n", currentChecksum, toChecksum);
-					THROW("Invalid checksum for block", 9);
+				if (currentChecksum != leftChecksum) {
+					printf("  Target file does not march left checksum: %"PRIu32" != %"PRIu32"\n", currentChecksum, leftChecksum);
+					THROW("Invalid checksum for block", ILLEGAL_STATE);
 				}
-				if (fwrite(&currentBlock, sizeof(uint32_t), 1, pOutputFile) != 1 ||
+				if (fwrite(&currentBlock, sizeof(uint64_t), 1, pOutputFile) != 1 ||
 					fwrite(pBuffer, size, 1, pOutputFile) != 1) {
 					THROW("Error writing in data file", WRITE_ERROR);
 				}
 				fflush(pOutputFile);
 			}
 		}
+		printf("----------------------------\n");
 	}
 
-	CATCH
+CATCH
 
-	FINALLY
+FINALLY
 
 	AUTOFREE(pBuffer);
 	AUTOFREE(pLeftHeader);

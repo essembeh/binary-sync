@@ -10,11 +10,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include "error.h"
-
-
-#define BOOL char
-#define TRUE 1
-#define FALSE 0
+#include "common.h"
 
 
 #define DEFAULT_BLOCK_SIZE 1048576

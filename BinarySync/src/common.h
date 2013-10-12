@@ -8,11 +8,18 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
+#include <inttypes.h>
+
 #include "error.h"
+
+
+#define BOOL char
+#define TRUE 1
+#define FALSE 0
 
 #define TRY \
 	char* exceptionMessage = NULL; \
-	int exceptionId = 0;
+	RETURN_CODE exceptionId = NO_ERROR;
 
 #define THROW(message, id) \
 	exceptionMessage = message; \
@@ -53,5 +60,7 @@
 	if (file != NULL) { \
 		fclose(file); file = NULL; }
 
+
+uint64_t getFileSize(FILE* pFile);
 
 #endif /* COMMON_H_ */

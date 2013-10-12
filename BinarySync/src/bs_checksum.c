@@ -81,7 +81,7 @@ TRY
 									&pUserData)), "Invalid arguments", rc);
 
 	// Open target
-	if ((pTargetFile = fopen(pTargetFilename, "r")) == NULL ) {
+	if ((pTargetFile = fopen(pTargetFilename, "rb")) == NULL ) {
 		THROW("Error opening target", OPEN_ERROR);
 	}
 
@@ -95,7 +95,7 @@ TRY
 	printHeaderInformation(pHeader, TRUE);
 
 	// Open checksum file
-	if ((pOutputFile = fopen(pOutputFilename, "w")) == NULL ) {
+	if ((pOutputFile = fopen(pOutputFilename, "wb")) == NULL ) {
 		THROW("Error opening checksum", OPEN_ERROR);
 	}
 

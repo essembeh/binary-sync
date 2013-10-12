@@ -19,7 +19,9 @@
 #define OPEN_ERROR 100
 #define READ_ERROR 101
 #define WRITE_ERROR 102
+#define SEEK_ERROR 103
 
 #define ILLEGAL_ARG 200
+#define ILLEGAL_STATE 201
 
 #endif /* ERROR_H_ */
