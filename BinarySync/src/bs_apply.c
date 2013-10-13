@@ -128,6 +128,9 @@ TRY
 			THROW("Cannot read from data file", READ_ERROR);
 		}
 		uint64_t dataSize = getBufferSize(pHeader, blockId);
+		if (dataSize == 0) {
+			THROW("Invalid data size for block", ILLEGAL_STATE);
+		}
 		if (fread(pBuffer, dataSize, 1, pDataFile) != 1) {
 			THROW("Cannot read from data file", READ_ERROR);
 		}
