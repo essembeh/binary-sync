@@ -4,7 +4,6 @@
 
 #include "common.h"
 #include "bsheader.h"
-#include "block.h"
 
 RETURN_CODE parse_args(int argc, char** argv,
 					   char** ppDataFilename,
@@ -46,17 +45,18 @@ RETURN_CODE parse_args(int argc, char** argv,
 	return EXIT_SUCCESS;
 }
 
-int checkHeaders(BSHeader* pHeader, FILE* pTagetFile) {
+RETURN_CODE checkHeaders(BSHeader* pHeader, FILE* pTagetFile) {
 	CHECK_PTR_RETURN(pHeader, ILLEGAL_ARG);
 	CHECK_PTR_RETURN(pTagetFile, ILLEGAL_ARG);
 	if (pHeader->type != DATA) {
 		return -1;
 	}
-	uint64_t fileSize = getFileSize(pTagetFile);
+	uint64_t fileSize;
+	CHECK_RC_RETURN(getFileSize(pTagetFile, &fileSize), -2);
 	if (fileSize != pHeader->totalSize) {
-		return -2;
+		return -3;
 	}
-	return 0;
+	return NO_ERROR;
 }
 
 uint64_t getBufferSize (BSHeader* pHeader, uint64_t blockId) {
@@ -79,17 +79,36 @@ RETURN_CODE writeBlock(BSHeader* pHeader, uint64_t blockId, uint64_t size, FILE*
 	return NO_ERROR;
 }
 
+RETURN_CODE getDataBlockCount(BSHeader* pHeader, FILE* pDataFile, uint64_t* opBlockCount) {
+	*opBlockCount = 0;
+	RETURN_CODE rc;
+
+	uint64_t fileSize;
+	if ((rc = getFileSize(pDataFile, &fileSize)) != NO_ERROR) {
+		return rc;
+	}
+	if (fileSize < (HEADER_LEN+FOOTER_LEN)) {
+		return ILLEGAL_STATE;
+	}
+	uint64_t payload = fileSize - HEADER_LEN - FOOTER_LEN;
+	uint64_t payloadUnit = sizeof(uint64_t) + pHeader->blockSize;
+	uint64_t lastBlockSize = getLastBlockSize(pHeader);
+	uint64_t modulo = payload % payloadUnit;
+	if (modulo != 0 && modulo != lastBlockSize) {
+		return ILLEGAL_STATE;
+	}
+	*opBlockCount = (payload / payloadUnit) + (modulo > 0 ? 1 : 0);
+	return NO_ERROR;
+}
+
 RETURN_CODE bs_apply(int argc, char** argv) {
 
-	int rc = 0;
+	RETURN_CODE rc = 0;
 	char* pDataFilename = NULL;
 	char* pTargetFilename = NULL;
-
 	FILE* pDataFile = NULL;
 	FILE* pTargetFile = NULL;
-
 	BSHeader* pHeader = NULL;
-
 	void* pBuffer = NULL;
 
 TRY
@@ -107,6 +126,7 @@ TRY
 
 	pHeader = readHeader(pDataFile);
 	CHECK_PTR_THROW(pHeader, "Error reading header for data file");
+	printf("Data file header:\n");
 	printHeaderInformation(pHeader, TRUE);
 
 	// Open target file
@@ -120,9 +140,14 @@ TRY
 	}
 
 	pBuffer = malloc(pHeader->blockSize);
+	uint64_t blockCount;
+	if ((rc = getDataBlockCount(pHeader, pDataFile, &blockCount)) != NO_ERROR) {
+		THROW("Data file length is not valid", rc);
+	}
+	printf("Data file contains %"PRIu64" block(s)\n", blockCount);
 	uint64_t blockId;
-
-	while(!feof(pDataFile)) {
+	uint64_t i;
+	for (i = 0; i < blockCount; ++i) {
 		// Read block Id
 		if (fread(&blockId, sizeof(uint64_t), 1, pDataFile) != 1) {
 			THROW("Cannot read from data file", READ_ERROR);
@@ -134,13 +159,11 @@ TRY
 		if (fread(pBuffer, dataSize, 1, pDataFile) != 1) {
 			THROW("Cannot read from data file", READ_ERROR);
 		}
-		printf("Apply data for block %"PRIu64", block size: %"PRIu64"\n", blockId, dataSize);
-
+		printf("Block %"PRIu64", data size: %"PRIu64" ... ", blockId, dataSize);
 		if ((rc = writeBlock(pHeader, blockId, dataSize, pTargetFile, pBuffer)) != NO_ERROR) {
 			THROW("Error writing block", rc);
 		}
-
-		printf("----------------------------\n");
+		printf("OK\n");
 	}
 
 CATCH

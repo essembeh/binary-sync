@@ -4,7 +4,6 @@
 
 #include "common.h"
 #include "bsheader.h"
-#include "block.h"
 
 RETURN_CODE parse_args(int argc, char** argv,
 					   char** ppLeftChecksumFilename,
@@ -181,19 +180,17 @@ TRY
 	uint64_t blockCount = getBlockCount(pRightHeader);
 	printf("Block count: %"PRIu64"\n", blockCount);
 	for (currentBlock = 0; currentBlock < blockCount; currentBlock++) {
-		printf("--> current block: %"PRIu64"\n", currentBlock);
+		printProgress(currentBlock + 1, blockCount, "Compare checksums");
 		if (fread(&leftChecksum, sizeof(uint32_t), 1, pLeftChecksumFile) != 1 ||
 			fread(&rightChecksum,   sizeof(uint32_t), 1, pRightChecksumFile) != 1) {
 			THROW("Cannot read from checksum file", 100);
 		}
 		if (leftChecksum != rightChecksum) {
-			printf("Checksum are different for block %"PRIu64", %"PRIu32" != %"PRIu32"\n",
-					currentBlock, leftChecksum, rightChecksum);
+			printf("Checksum are different for block %"PRIu64"\n", currentBlock);
 			uint64_t size = getBufferSize(pOutputHeader, currentBlock);
 			pBuffer = readBlock(pOutputHeader, currentBlock, size, pTargetFile);
 			CHECK_PTR_THROW(pBuffer, "Error reading buffer");
 			if (pBuffer != NULL) {
-				printf("  Writing block %"PRIu64" -> size: %"PRIu64"\n", currentBlock, size);
 				// Check if block have valid checksum
 				uint32_t currentChecksum = getChecksum(pBuffer, size);
 				if (currentChecksum != leftChecksum) {
@@ -207,7 +204,6 @@ TRY
 				fflush(pOutputFile);
 			}
 		}
-		printf("----------------------------\n");
 	}
 
 CATCH

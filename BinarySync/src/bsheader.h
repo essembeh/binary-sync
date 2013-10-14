@@ -35,4 +35,7 @@ void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString);
 uint64_t getBlockCount(BSHeader* pHeader);
 uint64_t getLastBlockSize(BSHeader* pHeader);
 
+#define HEADER_LEN  sizeof(BSHeader)
+#define FOOTER_LEN  0
+
 #endif /* BSHEADER_H_ */

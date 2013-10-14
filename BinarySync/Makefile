@@ -1,41 +1,44 @@
-all: bs-info bs-checksum bs-request
+CC=gcc
+CFLAGS=-W -Wall
+LDFLAGS=-lz
 
-	
-bs-info: bs_info.o block.o adler32.o bsheader.o
-	gcc bs_info.o block.o adler32.o bsheader.o -o bs-info
-	
-bs-checksum: bs_checksum.o block.o adler32.o bsheader.o
-	gcc bs_checksum.o block.o adler32.o bsheader.o -o bs-checksum
-
-bs-data: bs_data.o block.o adler32.o bsheader.o
-	gcc bs_info.o block.o adler32.o bsheader.o -o bs-info
-
-bs-apply: bs_apply.o block.o adler32.o bsheader.o
-	gcc bs_info.o block.o adler32.o bsheader.o -o bs-info
-
-common.o: common.c common.h
-	gcc -c common.c
-	
-adler32.o: adler32.c zutil.h zutil.h
-	gcc -c adler32.c
-
-bsheader.o: bsheader.c bsheader.h common.h
-	gcc -c bsheader.c
-	
-block.o: block.c bsheader.h block.h adler32.h
-	gcc -c block.c
+all: bs-info bs-checksum bs-apply bs-data
 
 
-bs_checksum.o: bs_checksum.c common.h bsheader.h adler32.h block.h
-	gcc -c bs_checksum.c
+bs-info: bsheader.o common.o bs_info.o
+	$(CC) -o $@ $^ $(LDFLAGS)
 
-bs_info.o: bs_info.c common.h bsheader.h
-	gcc -c bs_info.c
+bs-checksum: bsheader.o common.o bs_checksum.o
+	$(CC) -o $@ $^ $(LDFLAGS)
 
-bs_request.o: bs_request.c common.h bsheader.h adler32.h block.h
-	gcc -c bs_request.c
+bs-data: bsheader.o common.o bs_data.o
+	$(CC) -o $@ $^ $(LDFLAGS)
 
+bs-apply: bsheader.o common.o bs_apply.o
+	$(CC) -o $@ $^ $(LDFLAGS)
 
+bsheader.o: src/bsheader.c src/bsheader.h src/error.h
+	${CC} -c $< ${CFLAGS}
+
+common.o: src/common.c src/common.h src/error.h
+	${CC} -c $< ${CFLAGS}
+
+bs_info.o: src/bs_info.c src/error.h
+	${CC} -c $< ${CFLAGS}
+
+bs_checksum.o: src/bs_checksum.c src/error.h
+	${CC} -c $< ${CFLAGS}
+
+bs_data.o: src/bs_data.c src/error.h
+	${CC} -c $< ${CFLAGS}
+
+bs_apply.o: src/bs_apply.c src/error.h
+	${CC} -c $< ${CFLAGS}
+
+.PHONY: clean mrproper
 
 clean:
-	rm -f *.o
+	rm -rf *.o
+
+mrproper: clean
+	rm -rf bs-info bs-checksum bs-apply bs-data

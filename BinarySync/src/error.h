@@ -23,5 +23,6 @@
 
 #define ILLEGAL_ARG 200
 #define ILLEGAL_STATE 201
+#define ASSERTION_ERROR 202
 
 #endif /* ERROR_H_ */

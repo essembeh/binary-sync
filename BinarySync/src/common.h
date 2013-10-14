@@ -29,12 +29,15 @@
 #define CATCH \
 	goto NO_EXCEPTION; \
 	CATCH_EXCEPTION: \
-	printf("Error: %s, code:%d\n", exceptionMessage, exceptionId);
+	printf("[ERROR] %s (%d)\n", exceptionMessage, exceptionId);
 
 #define FINALLY \
 	NO_EXCEPTION:
 
 
+#define ASSERT(i, message) \
+	if (! i) { \
+		THROW(message, ASSERTION_ERROR); }
 
 #define CHECK_RC_RETURN(RC0, RC) \
 	if (RC0 != 0) { \
@@ -60,7 +63,8 @@
 	if (file != NULL) { \
 		fclose(file); file = NULL; }
 
-
-uint64_t getFileSize(FILE* pFile);
+RETURN_CODE getFileSize(FILE* pFile, uint64_t* opSize);
+void printProgress(uint64_t current, uint64_t total, char* message);
+uint32_t getChecksum(void* pData, size_t size);
 
 #endif /* COMMON_H_ */

@@ -4,7 +4,6 @@
 
 #include "common.h"
 #include "bsheader.h"
-#include "block.h"
 
 RETURN_CODE parse_args(int argc, char** argv,
 					   uint64_t* pBlockSize,
@@ -17,8 +16,7 @@ RETURN_CODE parse_args(int argc, char** argv,
 	*ppUserdata = NULL;
 	*pBlockSize = DEFAULT_BLOCK_SIZE;
 
-	printf("Parse arguments");
-
+	printf("Parse arguments\n");
 	opterr = 0;
 	int c;
 	while (1) {
@@ -62,7 +60,7 @@ RETURN_CODE parse_args(int argc, char** argv,
 
 RETURN_CODE bs_checksum(int argc, char** argv) {
 
-	int rc = 0;
+	RETURN_CODE rc = 0;
 	char* pTargetFilename = NULL;
 	char* pOutputFilename = NULL;
 	char* pUserData = NULL;
@@ -79,6 +77,7 @@ TRY
 									&pTargetFilename,
 									&pOutputFilename,
 									&pUserData)), "Invalid arguments", rc);
+	ASSERT((blockSize > 0), "Block size must be a positive value");
 
 	// Open target
 	if ((pTargetFile = fopen(pTargetFilename, "rb")) == NULL ) {
@@ -86,12 +85,14 @@ TRY
 	}
 
 	// read size
-	fseek(pTargetFile, 0L, SEEK_END);
-	uint64_t totalSize = ftell(pTargetFile);
-	fseek(pTargetFile, 0L, SEEK_SET);
+	uint64_t totalSize;
+	if ((rc = getFileSize(pTargetFile, &totalSize)) != NO_ERROR) {
+		THROW("Error getting file size", rc);
+	}
 
 	// Create header
 	pHeader = newHeader(CHECKSUM, totalSize, blockSize, pUserData);
+	printf("Output header\n");
 	printHeaderInformation(pHeader, TRUE);
 
 	// Open checksum file
@@ -113,18 +114,17 @@ TRY
 	buffer = malloc(blockSize);
 	uint64_t currentBlockId = 0;
 	uint32_t checksum = 0;
-	while (1) {
-		size_t len = fread(buffer, 1, blockSize, pTargetFile);
-		if (len <= 0) {
-			break;
+	for(currentBlockId = 0; currentBlockId < blockCount; currentBlockId++) {
+		printProgress(++currentBlockId, blockCount, "Computing checksum");
+		uint64_t bufferSize = currentBlockId == (blockCount - 1) ? lastBlockSize : blockSize;
+		if ((rc = fread(buffer, bufferSize, 1, pTargetFile)) != 1) {
+			THROW("Error reading target file", rc);
 		}
-		printProgress(++currentBlockId, blockCount, "Checksum");
-		checksum = getChecksum(buffer, len);
+		checksum = getChecksum(buffer, bufferSize);
 		if (fwrite(&checksum, sizeof(uint32_t), 1, pOutputFile) != 1) {
 			THROW("Error writing checksum", WRITE_ERROR)
 		}
 	}
-	printf("Checksum complete\n");
 
 CATCH
 
