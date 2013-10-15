@@ -115,7 +115,7 @@ TRY
 	uint64_t currentBlockId = 0;
 	uint32_t checksum = 0;
 	for(currentBlockId = 0; currentBlockId < blockCount; currentBlockId++) {
-		printProgress(++currentBlockId, blockCount, "Computing checksum");
+		printProgress(currentBlockId, blockCount, "Computing checksum");
 		uint64_t bufferSize = currentBlockId == (blockCount - 1) ? lastBlockSize : blockSize;
 		if ((rc = fread(buffer, bufferSize, 1, pTargetFile)) != 1) {
 			THROW("Error reading target file", rc);

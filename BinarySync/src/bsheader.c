@@ -73,10 +73,10 @@ void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString) {
 		}
 		printf("\t%16s: %"PRIu64"\n", "Total size", pHeader->totalSize);
 		printf("\t%16s: %"PRIu64"\n", "Block size", pHeader->blockSize);
-		printf("\t%16s: %d\n", "User data length", USER_DATA_LEN);
-		uint64_t blockCount = getBlockCount(pHeader);
-		printf("\t%16s: %"PRIu64"\n", "Block count", blockCount);
+		printf("\t%16s: %"PRIu64"\n", "Last block size", getLastBlockSize(pHeader));
+		printf("\t%16s: %"PRIu64"\n", "Block count", getBlockCount(pHeader));
 		if (pHeader->pUserData != NULL && printUserDataAsString == TRUE) {
+			printf("\t%16s: %d\n", "User data length", USER_DATA_LEN);
 			printf("\t%16s: %s\n", "User data", pHeader->pUserData);
 		}
 	}
