@@ -2,8 +2,9 @@ CC=gcc
 CFLAGS=-W -Wall
 LDFLAGS=-lz
 
-all: bs-info bs-checksum bs-apply bs-data
+all: binaries
 
+binaries: bs-info bs-checksum bs-apply bs-data
 
 bs-info: bsheader.o common.o bs_info.o
 	$(CC) -o $@ $^ $(LDFLAGS)
@@ -42,3 +43,9 @@ clean:
 
 mrproper: clean
 	rm -rf bs-info bs-checksum bs-apply bs-data
+
+archive: binaries
+	rm -rf binary-sync
+	mkdir binary-sync
+	cp bs-info bs-checksum bs-apply bs-data binary-sync
+	tar fac binary-sync.tar.gz binary-sync
