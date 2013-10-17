@@ -1,9 +1,9 @@
 ## Nota
-- byte    = 1 byte
-- uint8   = 1 bytes
-- uint16  = 2 bytes
-- uint32  = 4 bytes 
-- uint64  = 8 bytes 
+    byte    = 1 byte
+    uint8   = 1 byte
+    uint16  = 2 bytes
+    uint32  = 4 bytes 
+    uint64  = 8 bytes 
 
 ---
 
