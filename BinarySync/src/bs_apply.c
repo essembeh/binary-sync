@@ -122,6 +122,11 @@ TRY
 		THROW("Data file is not compatible with target", rc);
 	}
 
+	// fseek on checksum files
+	if ((rc = fseekAfterHeader(pDataFile))  != NO_ERROR) {
+		THROW("Cannot set position", rc);
+	}
+
 	pBuffer = malloc(header.blockSize);
 	printf("Data file contains %"PRIu64" block(s)\n", footer.itemCount);
 	uint64_t blockCount = getBlockCount(&header);
@@ -137,7 +142,10 @@ TRY
 			THROW("Cannot read from data file", READ_ERROR);
 		}
 		printf("Block %"PRIu64" ... ", blockId);
-		if (fwrite(pBuffer, (blockId == blockCount - 1) ? lastBlockSize : header.blockSize, 1, pTargetFile) != 1) {
+		if(fseek(pTargetFile, blockId * header.blockSize, SEEK_SET) != 0) {
+			THROW("Cannot set position on target file from", SEEK_ERROR);
+		}
+		if (fwrite(pBuffer, (blockId == (blockCount - 1)) ? lastBlockSize : header.blockSize, 1, pTargetFile) != 1) {
 			THROW("Error writing block", rc);
 		}
 		printf("OK\n");

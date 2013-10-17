@@ -159,6 +159,12 @@ TRY
 		THROW("Error opening target", OPEN_ERROR);
 	}
 
+	// fseek on checksum files
+	if ((rc = fseekAfterHeader(pLeftChecksumFile))  != NO_ERROR ||
+		(rc = fseekAfterHeader(pRightChecksumFile)) != NO_ERROR) {
+		THROW("Cannot set position", rc);
+	}
+
 	uint64_t currentBlock;
 	uint32_t leftChecksum, rightChecksum;
 	uint64_t blockCount = getBlockCount(&outputHeader);
@@ -172,12 +178,13 @@ TRY
 			THROW("Cannot read from checksum file", 100);
 		}
 		if (leftChecksum != rightChecksum) {
-			printf("Checksum are different for block %"PRIu64"\n", currentBlock);
+			printf("Checksum are different for block %"PRIu64" (%"PRIu32" != %"PRIu32")\n", currentBlock, leftChecksum, rightChecksum);
 			CHECK_RC_THROW(readBlock(pTargetFile, &outputHeader, currentBlock, pBuffer), "Error reading target", READ_ERROR);
 			// Check if block have valid checksum
 			uint32_t currentChecksum = getChecksum(pBuffer, outputHeader.blockSize);
 			if (currentChecksum != leftChecksum) {
-				printf("  Target file does not march left checksum: %"PRIu32" != %"PRIu32"\n", currentChecksum, leftChecksum);
+				printf("  /!\\ Block %"PRIu64" from target is %"PRIu32" and should be %"PRIu32"\n",
+						currentBlock, currentChecksum, leftChecksum);
 				THROW("Invalid checksum for block", ILLEGAL_STATE);
 			}
 			if (fwrite(&currentBlock, sizeof(uint64_t),       1, pOutputFile) != 1 ||

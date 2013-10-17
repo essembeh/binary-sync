@@ -21,6 +21,7 @@ typedef enum {
 } BSType;
 
 typedef struct {
+	char tag[2];
 	uint8_t version;
 	uint8_t type;
 	uint64_t totalSize;
@@ -30,7 +31,7 @@ typedef struct {
 
 typedef struct {
 	uint64_t itemCount;
-	char foot[2];
+	char tag[2];
 } BSFooter;
 
 RETURN_CODE initHeader(BSHeader* pHeader, BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserdata);
@@ -39,6 +40,9 @@ RETURN_CODE initFooter(BSFooter* pFooter, uint64_t itemCount);
 RETURN_CODE readHeaderFooter(FILE* input, BSHeader* pHeader, BSFooter* pFooter);
 RETURN_CODE writeHeader(FILE* output, BSHeader* pHeader);
 RETURN_CODE writeFooter(FILE* output, BSFooter* pFooter);
+RETURN_CODE checkTag(BSHeader* pHeader, BSFooter* pFooter);
+RETURN_CODE writeTag(BSHeader* pHeader, BSFooter* pFooter);
+RETURN_CODE fseekAfterHeader(FILE* input);
 
 void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString);
 void printFooterInformation(BSFooter* pFooter);

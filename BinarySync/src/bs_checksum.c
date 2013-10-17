@@ -126,6 +126,7 @@ TRY
 		if (fwrite(&checksum, sizeof(uint32_t), 1, pOutputFile) != 1) {
 			THROW("Error writing checksum", WRITE_ERROR)
 		}
+		printf("Block %"PRIu64" has checksum %"PRIu64"\n", currentBlockId, checksum);
 	}
 	initFooter(&footer, blockCount);
 	if (fwrite(&footer, FOOTER_LEN, 1, pOutputFile) != 1) {

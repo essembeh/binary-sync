@@ -20,7 +20,7 @@ RETURN_CODE initHeader(BSHeader* pHeader,
 					   char* pUserdata) {
 	// Check
 	CHECK_PTR_RETURN(pHeader, ILLEGAL_ARG);
-	ASSERT_RETURN((blockSize <= totalSize), ILLEGAL_ARG);
+	ASSERT_RETURN(blockSize <= totalSize, ILLEGAL_ARG);
 
 	// CLEAN
 	memset(pHeader, 0, HEADER_LEN);
@@ -30,6 +30,7 @@ RETURN_CODE initHeader(BSHeader* pHeader,
 	pHeader->type = type;
 	pHeader->totalSize = totalSize;
 	pHeader->blockSize = blockSize;
+	writeTag(pHeader, NULL);
 	updateUserData(pHeader, pUserdata);
 
 	return NO_ERROR;
@@ -53,8 +54,7 @@ RETURN_CODE initFooter(BSFooter* pFooter,
 	memset(pFooter, 0, FOOTER_LEN);
 
 	// Init
-	pFooter->foot[0] = 'B';
-	pFooter->foot[1] = 'S';
+	writeTag(NULL, pFooter);
 	pFooter->itemCount = itemCount;
 
 	return NO_ERROR;
@@ -85,15 +85,21 @@ RETURN_CODE readHeaderFooter(FILE* input,
 		return READ_ERROR;
 	}
 
+	if ((rc = checkTag(pHeader, pFooter)) != NO_ERROR) {
+		return rc;
+	}
+	ASSERT_RETURN(pHeader->type == DATA || pHeader->type == CHECKSUM, BS_INVALID_HEADER);
+	ASSERT_RETURN(pHeader->version == 1, BS_INVALID_HEADER);
+
 	uint64_t payloadSize = fileSize - HEADER_LEN - FOOTER_LEN;
 	uint64_t blockCount = getBlockCount(pHeader);
-	ASSERT_RETURN((blockCount > 0), BS_INVALID_BLOCK_COUNT);
+	ASSERT_RETURN(blockCount > 0, BS_INVALID_BLOCK_COUNT);
 	if (pHeader->type == CHECKSUM) {
-		ASSERT_RETURN((pFooter->itemCount == blockCount), BS_INVALID_ITEMCOUNT);
-		ASSERT_RETURN((payloadSize == getItemSize(pHeader) * blockCount), BS_INVALID_SIZE);
+		ASSERT_RETURN(pFooter->itemCount == blockCount, BS_INVALID_ITEMCOUNT);
+		ASSERT_RETURN(payloadSize == getItemSize(pHeader) * blockCount, BS_INVALID_SIZE);
 	} else if (pHeader->type == DATA) {
-		ASSERT_RETURN(pFooter <= blockCount, BS_INVALID_ITEMCOUNT);
-		ASSERT_RETURN((payloadSize == getItemSize(pHeader) * pFooter->itemCount), BS_INVALID_SIZE);
+		ASSERT_RETURN(pFooter->itemCount <= blockCount, BS_INVALID_ITEMCOUNT);
+		ASSERT_RETURN(payloadSize == getItemSize(pHeader) * pFooter->itemCount, BS_INVALID_SIZE);
 	}
 	return NO_ERROR;
 }
@@ -116,10 +122,43 @@ RETURN_CODE writeFooter(FILE* output, BSFooter* pFooter) {
 	return NO_ERROR;
 }
 
+RETURN_CODE checkTag(BSHeader* pHeader, BSFooter* pFooter) {
+	if (pHeader != NULL) {
+		if (pHeader->tag[0] != 'B' ||
+			pHeader->tag[1] != 'S') {
+			return BS_INVALID_TAG;
+		}
+	}
+	if (pFooter != NULL) {
+		if (pFooter->tag[0] != 'B' ||
+			pFooter->tag[1] != 'S') {
+			return BS_INVALID_TAG;
+		}
+	}
+	return NO_ERROR;
+}
+
+RETURN_CODE writeTag(BSHeader* pHeader, BSFooter* pFooter) {
+	if (pHeader != NULL) {
+		pHeader->tag[0] = 'B';
+		pHeader->tag[1] = 'S';
+	}
+	if (pFooter != NULL) {
+		pFooter->tag[0] = 'B';
+		pFooter->tag[1] = 'S';
+	}
+	return NO_ERROR;
+}
+
+RETURN_CODE fseekAfterHeader(FILE* input) {
+	CHECK_PTR_RETURN(input, ILLEGAL_ARG);
+	CHECK_RC_RETURN(fseek(input, HEADER_LEN, SEEK_SET), SEEK_ERROR);
+	return NO_ERROR;
+}
 
 void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString) {
 	if (pHeader != NULL) {
-		printf("\t%16s: %lu\n", "Size of header", sizeof(BSHeader));
+		printf("\t%16s: %lu\n", "Size of header", HEADER_LEN);
 		printf("\t%16s: %"PRIu8"\n", "Version", pHeader->version);
 		switch (pHeader->type) {
 		case CHECKSUM:
@@ -143,6 +182,7 @@ void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString) {
 }
 
 void printFooterInformation(BSFooter* pFooter) {
+	printf("\t%16s: %lu\n", "Size of footer", FOOTER_LEN);
 	printf("\t%16s: %"PRIu64"\n", "Item count", pFooter->itemCount);
 }
 

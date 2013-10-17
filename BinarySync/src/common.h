@@ -36,11 +36,11 @@
 
 
 #define ASSERT_RETURN(COND, RC) \
-	if (! COND) { \
+	if (! (COND)) { \
 		return RC; }
 
 #define ASSERT_THROW(COND, MESSAGE) \
-	if (! COND) { \
+	if (! (COND)) { \
 		THROW(MESSAGE, ASSERTION_ERROR); }
 
 #define CHECK_RC_RETURN(RC, RC1) \
