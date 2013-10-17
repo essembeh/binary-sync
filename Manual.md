@@ -74,10 +74,10 @@ Create a FILE_DATA **data file** file from two FILE_SUM **checksum files**.
 The **data file** contains all blocks which checksum if different between **from** and **to** versions.
 
 ### OPTIONS
-    -l FILE_SUM, --left=FILE_SUM
+    -r FILE_SUM, --remote=FILE_SUM
         The *remote* **checksum file**
 
-    -r FILE_SUM, --right=FILE_SUM
+    -m FILE_SUM, --master=FILE_SUM
         The *master* **checksum file**
 
     -t FILE, --target=FILE
@@ -91,8 +91,8 @@ The **data file** contains all blocks which checksum if different between **from
 
 ### USAGE
     bs-data-request \
-        --left=remote.sum \
-        --right=master.sum \
+        --remote=remote.sum \
+        --master=master.sum \
         --target=/dev/sda1 \
         --output=update.data
 > Creates a **data file** to synchronise the file from the *remote* version to the *master* version.

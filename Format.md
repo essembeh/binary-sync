@@ -3,6 +3,7 @@
 - uint8   = 1 bytes
 - uint16  = 2 bytes
 - uint32  = 4 bytes 
+- uint64  = 8 bytes 
 
 ---
 
@@ -17,15 +18,16 @@ Hash size depends on the hash function used
 * size of hash with CRC32: 4 bytes
 
 ### FIELDS
-    uint8     VERSION          version of the binary format
-    uint8     TYPE             'C': checksum file
+    byte[2]    "BS"            arbitrary string
+    uint8      VERSION         version of the binary format
+    uint8      TYPE            'C': checksum file
                                'D': data file
-    uint32     TOTAL_SIZE      the size of the master file (unused for a snapshot request)
-    uint32     BLOCK_SIZE      the size used for blocks for hash computing or data.
+    uint64     TOTAL_SIZE      the size of the master file (unused for a snapshot request)
+    uint64     BLOCK_SIZE      the size used for blocks for hash computing or data.
     byte[32]   USER_DATA       can be used to share extra info between remote and master
     
 ### EXAMPLE
-    1 20 1024 32 10 /dev/sda1: 
+    BS 1 20 1024 32 10 /dev/sda1: 
 > is a header of a checksum file, version 1, of a 1kb file, using 32 bytes block, with user date "/dev/sda1"
 
 --- 
@@ -36,7 +38,8 @@ Hash size depends on the hash function used
 To identify the end of file
 
 ### FIELDS
-    byte[4]    "FOOT"          arbitrary string
+    uint64     ITEM_COUNT      number of items on the file
+    byte[2]    "BS"            arbitrary string
 
 ---
 
@@ -47,22 +50,19 @@ Contains hash of requested blocks.
 The size of hash depends on the hash function used.
 
 ### FIELDS
-    uint32         START_INDEX
-    uint32         START_INDEX 
-    sizeof(hash)   HASH          hash of block START_INDEX
-    sizeof(hash)   HASH          hash of block START_INDEX+1
+    sizeof(hash)   HASH          hash of block 0
+    sizeof(hash)   HASH          hash of block 1
     [...]
-    sizeof(hash)   HASH          hash of block STOP_INDEX
-    ... (sequence can be repeated)
+    sizeof(hash)   HASH          hash of last block 
     
 ### EXAMPLE
-    3 3 65003 17 42 65017 65018 65018 65019 ... 65042
-        Hash of block 3 is 65003
-        Hash of block 17 is 65017
-        Hash of block 18 is 65018
-        Hash of block 19 is 65019
+    65017 65018 65018 65019 ... 65042
+        Hash of block 0 is 65003
+        Hash of block 1 is 65017
+        Hash of block 2 is 65018
+        Hash of block 3 is 65019
         ...
-        Hash of block 42 is 65042
+        Hash of last block is 65042
 
 ---
 
@@ -72,20 +72,15 @@ The size of hash depends on the hash function used.
 Contains data of requested blocks.
 
 ### FIELDS
-    uint32             START_INDEX
-    uint32             START_INDEX
-    byte[BLOCK_SIZE]   DATA            data of block START_INDEX
-    byte[BLOCK_SIZE]   DATA            data of block START_INDEX+1
-    [...]
-    byte[BLOCK_SIZE]   DATA            data of block STOP_INDEX
+    uint64             BLOCK_ID
+    byte[BLOCK_SIZE]   DATA            data of block
     ... (sequence can be repeated)
     
 ### EXAMPLE
-    3 3 0x54520000000000000003 17 42 0x54520000000000000017 0x54520000000000000018 0x54520000000000000019 ... 0x54520000000000000042
-        Data of block 3 is 0x54520000000000000003
-        Data of block 17 is 0x54520000000000000017
-        Data of block 18 is 0x54520000000000000018
-        Data of block 19 is 0x54520000000000000019
+    3 0x54520000000000000001 17 0x54520000000000000002 42 0x54520000000000000003 ... 59 0x54520000000000000009
+        Data of block  3 is 0x54520000000000000001
+        Data of block 17 is 0x54520000000000000002
+        Data of block 42 is 0x54520000000000000003
         ...
-        Data of block 42 is 0x54520000000000000042
+        Data of block 59 is 0x54520000000000000009
 
