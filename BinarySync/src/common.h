@@ -35,33 +35,37 @@
 	NO_EXCEPTION:
 
 
-#define ASSERT(i, message) \
-	if (! i) { \
-		THROW(message, ASSERTION_ERROR); }
-
-#define CHECK_RC_RETURN(RC0, RC) \
-	if (RC0 != 0) { \
+#define ASSERT_RETURN(COND, RC) \
+	if (! COND) { \
 		return RC; }
 
-#define CHECK_RC_THROW(RC0, message, id) \
-	if (RC0 != 0) { \
-		THROW(message, id); }
+#define ASSERT_THROW(COND, MESSAGE) \
+	if (! COND) { \
+		THROW(MESSAGE, ASSERTION_ERROR); }
 
-#define CHECK_PTR_RETURN(pLop, RC) \
-	if (pLop == NULL) { \
+#define CHECK_RC_RETURN(RC, RC1) \
+	if (RC != NO_ERROR) { \
+		return RC1; }
+
+#define CHECK_RC_THROW(RC, MESSAGE, RC1) \
+	if (RC != NO_ERROR) { \
+		THROW(MESSAGE, RC1); }
+
+#define CHECK_PTR_RETURN(PTR, RC) \
+	if (PTR == NULL) { \
 		return RC; }
 
-#define CHECK_PTR_THROW(pLop, message) \
-	if (pLop == NULL) { \
-		THROW(message, NULLPOINTER); }
+#define CHECK_PTR_THROW(PTR, MESSAGE) \
+	if (PTR == NULL) { \
+		THROW(MESSAGE, NULLPOINTER); }
 
-#define AUTOFREE(pLop) \
-	if (pLop != NULL) { \
-		free(pLop); pLop = NULL; }
+#define AUTOFREE(PTR) \
+	if (PTR != NULL) { \
+		free(PTR); PTR = NULL; }
 
-#define AUTOCLOSE(file) \
-	if (file != NULL) { \
-		fclose(file); file = NULL; }
+#define AUTOCLOSE(PTR) \
+	if (PTR != NULL) { \
+		fclose(PTR); PTR = NULL; }
 
 RETURN_CODE getFileSize(FILE* pFile, uint64_t* opSize);
 void printProgress(uint64_t current, uint64_t total, char* message);

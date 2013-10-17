@@ -86,23 +86,6 @@ int checkHeaders(BSHeader* pHeaderLeft, BSHeader* pHeaderRight) {
 	return 0;
 }
 
-uint64_t getBufferSize (BSHeader* pHeader, uint64_t blockId) {
-	return (blockId == (getBlockCount(pHeader)-1)) ? getLastBlockSize(pHeader) : pHeader->blockSize;
-}
-
-void* readBlock(BSHeader* pHeader, uint64_t blockId, uint64_t size, FILE* pSource) {
-	void* pOut = malloc(size);
-	if (pOut != NULL) {
-		if (fseek(pSource, blockId * pHeader->blockSize, SEEK_SET) == 0) {
-			if (fread(pOut, size, 1, pSource) == 1) {
-				return pOut;
-			}
-		}
-	}
-	AUTOFREE(pOut);
-	return pOut;
-}
-
 RETURN_CODE bs_data(int argc, char** argv) {
 
 	int rc = 0;
@@ -117,9 +100,8 @@ RETURN_CODE bs_data(int argc, char** argv) {
 	FILE* pTargetFile = NULL;
 	FILE* pOutputFile = NULL;
 
-	BSHeader* pLeftHeader = NULL;
-	BSHeader* pRightHeader = NULL;
-	BSHeader* pOutputHeader = NULL;
+	BSHeader leftHeader, rightHeader, outputHeader;
+	BSFooter leftFooter, rightFooter, outputFooter;
 
 	void* pBuffer = NULL;
 
@@ -142,23 +124,25 @@ TRY
 		THROW("Error opening right checksum file", OPEN_ERROR);
 	}
 
-	pLeftHeader = readHeader(pLeftChecksumFile);
-	CHECK_PTR_THROW(pLeftHeader, "Error reading header for left checksum");
+	if ((rc = readHeaderFooter(pLeftChecksumFile, &leftHeader, &leftFooter)) != NO_ERROR) {
+		THROW("Error reading header and footer for left checksum", rc);
+	}
 
-	pRightHeader = readHeader(pRightChecksumFile);
-	CHECK_PTR_THROW(pRightHeader, "Error reading header for right checksum");
+	if ((rc = readHeaderFooter(pRightChecksumFile, &rightHeader, &rightFooter)) != NO_ERROR) {
+		THROW("Error reading header and footer for right checksum", rc);
+	}
 
 	// Check
-	if ((rc = checkHeaders(pLeftHeader, pRightHeader)) != 0) {
+	if ((rc = checkHeaders(&leftHeader, &rightHeader)) != 0) {
 		THROW("Checksum files are incompatible", rc);
 	}
 
 	// Create header
 	if (pUserdata == NULL) {
-		pUserdata = pRightHeader->pUserData;
+		pUserdata = rightHeader.pUserData;
 	}
-	pOutputHeader = newHeader(DATA, pRightHeader->totalSize, pRightHeader->blockSize, pUserdata);
-	printHeaderInformation(pOutputHeader, TRUE);
+	initHeader(&outputHeader, DATA, rightHeader.totalSize, rightHeader.blockSize, pUserdata);
+	printHeaderInformation(&outputHeader, TRUE);
 
 	// Open output file
 	if ((pOutputFile = fopen(pOutputFilename, "wb")) == NULL) {
@@ -166,7 +150,7 @@ TRY
 	}
 
 	// Write header
-	if ((rc = writeHeader(pOutputFile, pOutputHeader)) != 0) {
+	if ((rc = writeHeader(pOutputFile, &outputHeader)) != 0) {
 		THROW("Error writing checksum", rc);
 	}
 
@@ -177,43 +161,42 @@ TRY
 
 	uint64_t currentBlock;
 	uint32_t leftChecksum, rightChecksum;
-	uint64_t blockCount = getBlockCount(pRightHeader);
+	uint64_t blockCount = getBlockCount(&outputHeader);
+	uint64_t diffCount = 0;
+	pBuffer = malloc(outputHeader.blockSize);
 	printf("Block count: %"PRIu64"\n", blockCount);
 	for (currentBlock = 0; currentBlock < blockCount; currentBlock++) {
 		printProgress(currentBlock + 1, blockCount, "Compare checksums");
-		if (fread(&leftChecksum, sizeof(uint32_t), 1, pLeftChecksumFile) != 1 ||
-			fread(&rightChecksum,   sizeof(uint32_t), 1, pRightChecksumFile) != 1) {
+		if (fread(&leftChecksum,  sizeof(uint32_t), 1, pLeftChecksumFile)  != 1 ||
+			fread(&rightChecksum, sizeof(uint32_t), 1, pRightChecksumFile) != 1) {
 			THROW("Cannot read from checksum file", 100);
 		}
 		if (leftChecksum != rightChecksum) {
 			printf("Checksum are different for block %"PRIu64"\n", currentBlock);
-			uint64_t size = getBufferSize(pOutputHeader, currentBlock);
-			pBuffer = readBlock(pOutputHeader, currentBlock, size, pTargetFile);
-			CHECK_PTR_THROW(pBuffer, "Error reading buffer");
-			if (pBuffer != NULL) {
-				// Check if block have valid checksum
-				uint32_t currentChecksum = getChecksum(pBuffer, size);
-				if (currentChecksum != leftChecksum) {
-					printf("  Target file does not march left checksum: %"PRIu32" != %"PRIu32"\n", currentChecksum, leftChecksum);
-					THROW("Invalid checksum for block", ILLEGAL_STATE);
-				}
-				if (fwrite(&currentBlock, sizeof(uint64_t), 1, pOutputFile) != 1 ||
-					fwrite(pBuffer, size, 1, pOutputFile) != 1) {
-					THROW("Error writing in data file", WRITE_ERROR);
-				}
-				fflush(pOutputFile);
+			CHECK_RC_THROW(readBlock(pTargetFile, &outputHeader, currentBlock, pBuffer), "Error reading target", READ_ERROR);
+			// Check if block have valid checksum
+			uint32_t currentChecksum = getChecksum(pBuffer, outputHeader.blockSize);
+			if (currentChecksum != leftChecksum) {
+				printf("  Target file does not march left checksum: %"PRIu32" != %"PRIu32"\n", currentChecksum, leftChecksum);
+				THROW("Invalid checksum for block", ILLEGAL_STATE);
 			}
+			if (fwrite(&currentBlock, sizeof(uint64_t),       1, pOutputFile) != 1 ||
+				fwrite(pBuffer,       outputHeader.blockSize, 1, pOutputFile) != 1) {
+				THROW("Error writing in data file", WRITE_ERROR);
+			}
+			diffCount++;
+			fflush(pOutputFile);
 		}
+	}
+	initFooter(&outputFooter, diffCount);
+	if (fwrite(&outputFooter, FOOTER_LEN, 1, pOutputFile) != 1) {
+		THROW("Error writing footer", WRITE_ERROR)
 	}
 
 CATCH
 
 FINALLY
-
 	AUTOFREE(pBuffer);
-	AUTOFREE(pLeftHeader);
-	AUTOFREE(pRightHeader);
-	AUTOFREE(pOutputHeader);
 	AUTOCLOSE(pLeftChecksumFile);
 	AUTOCLOSE(pRightChecksumFile);
 	AUTOCLOSE(pOutputFile);

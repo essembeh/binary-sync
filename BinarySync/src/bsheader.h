@@ -28,14 +28,28 @@ typedef struct {
 	char pUserData[USER_DATA_LEN];
 } BSHeader;
 
-BSHeader* newHeader(BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserData);
-BSHeader* readHeader(FILE* input);
+typedef struct {
+	uint64_t itemCount;
+	char foot[2];
+} BSFooter;
+
+RETURN_CODE initHeader(BSHeader* pHeader, BSType type, uint64_t totalSize, uint64_t blockSize, char* pUserdata);
+RETURN_CODE updateUserData(BSHeader* pHeader, char* pUserData);
+RETURN_CODE initFooter(BSFooter* pFooter, uint64_t itemCount);
+RETURN_CODE readHeaderFooter(FILE* input, BSHeader* pHeader, BSFooter* pFooter);
 RETURN_CODE writeHeader(FILE* output, BSHeader* pHeader);
+RETURN_CODE writeFooter(FILE* output, BSFooter* pFooter);
+
 void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString);
+void printFooterInformation(BSFooter* pFooter);
+
 uint64_t getBlockCount(BSHeader* pHeader);
+uint64_t getItemSize(BSHeader* pHeader);
 uint64_t getLastBlockSize(BSHeader* pHeader);
+RETURN_CODE readBlock(FILE* pSource, BSHeader* pHeader, uint64_t blockId, void* pBuffer);
+RETURN_CODE getExpectedPayloadSize(BSHeader* pHeader, BSFooter* pFooter, uint64_t* pOutSize);
 
 #define HEADER_LEN  sizeof(BSHeader)
-#define FOOTER_LEN  0
+#define FOOTER_LEN  sizeof(BSFooter)
 
 #endif /* BSHEADER_H_ */

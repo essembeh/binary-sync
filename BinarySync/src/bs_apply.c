@@ -59,26 +59,6 @@ RETURN_CODE checkHeaders(BSHeader* pHeader, FILE* pTagetFile) {
 	return NO_ERROR;
 }
 
-uint64_t getBufferSize (BSHeader* pHeader, uint64_t blockId) {
-	uint64_t max = getBlockCount(pHeader);
-	if (blockId >= max) {
-		return 0;
-	}
-	return (blockId == (max-1)) ? getLastBlockSize(pHeader) : pHeader->blockSize;
-}
-
-RETURN_CODE writeBlock(BSHeader* pHeader, uint64_t blockId, uint64_t size, FILE* pTarget, void* pData) {
-	CHECK_PTR_RETURN(pHeader, ILLEGAL_ARG);
-	CHECK_PTR_RETURN(pTarget, ILLEGAL_ARG);
-	if (fseek(pTarget, pHeader->blockSize * blockId, SEEK_SET) != 0) {
-		return SEEK_ERROR;
-	}
-	if (fwrite(pData, size, 1, pTarget) != 1) {
-		return WRITE_ERROR;
-	}
-	return NO_ERROR;
-}
-
 RETURN_CODE getDataBlockCount(BSHeader* pHeader, FILE* pDataFile, uint64_t* opBlockCount) {
 	*opBlockCount = 0;
 	RETURN_CODE rc;
@@ -108,8 +88,10 @@ RETURN_CODE bs_apply(int argc, char** argv) {
 	char* pTargetFilename = NULL;
 	FILE* pDataFile = NULL;
 	FILE* pTargetFile = NULL;
-	BSHeader* pHeader = NULL;
 	void* pBuffer = NULL;
+
+	BSHeader header;
+	BSFooter footer;
 
 TRY
 
@@ -124,10 +106,11 @@ TRY
 		THROW("Error opening data file", OPEN_ERROR);
 	}
 
-	pHeader = readHeader(pDataFile);
-	CHECK_PTR_THROW(pHeader, "Error reading header for data file");
-	printf("Data file header:\n");
-	printHeaderInformation(pHeader, TRUE);
+	if ((rc = readHeaderFooter(pDataFile, &header, &footer)) != NO_ERROR) {
+		THROW("Error reading header and footer", rc);
+	}
+	printHeaderInformation(&header, TRUE);
+	printFooterInformation(&footer);
 
 	// Open target file
 	if ((pTargetFile = fopen(pTargetFilename, "rb+")) == NULL) {
@@ -135,32 +118,26 @@ TRY
 	}
 
 	// Check
-	if ((rc = checkHeaders(pHeader, pTargetFile)) != 0) {
+	if ((rc = checkHeaders(&header, pTargetFile)) != 0) {
 		THROW("Data file is not compatible with target", rc);
 	}
 
-	pBuffer = malloc(pHeader->blockSize);
-	uint64_t blockCount;
-	if ((rc = getDataBlockCount(pHeader, pDataFile, &blockCount)) != NO_ERROR) {
-		THROW("Data file length is not valid", rc);
-	}
-	printf("Data file contains %"PRIu64" block(s)\n", blockCount);
+	pBuffer = malloc(header.blockSize);
+	printf("Data file contains %"PRIu64" block(s)\n", footer.itemCount);
+	uint64_t blockCount = getBlockCount(&header);
+	uint64_t lastBlockSize = getLastBlockSize(&header);
 	uint64_t blockId;
 	uint64_t i;
-	for (i = 0; i < blockCount; ++i) {
+	for (i = 0; i < footer.itemCount; ++i) {
 		// Read block Id
 		if (fread(&blockId, sizeof(uint64_t), 1, pDataFile) != 1) {
 			THROW("Cannot read from data file", READ_ERROR);
 		}
-		uint64_t dataSize = getBufferSize(pHeader, blockId);
-		if (dataSize == 0) {
-			THROW("Invalid data size for block", ILLEGAL_STATE);
-		}
-		if (fread(pBuffer, dataSize, 1, pDataFile) != 1) {
+		if (fread(pBuffer, header.blockSize, 1, pDataFile) != 1) {
 			THROW("Cannot read from data file", READ_ERROR);
 		}
-		printf("Block %"PRIu64", data size: %"PRIu64" ... ", blockId, dataSize);
-		if ((rc = writeBlock(pHeader, blockId, dataSize, pTargetFile, pBuffer)) != NO_ERROR) {
+		printf("Block %"PRIu64" ... ", blockId);
+		if (fwrite(pBuffer, (blockId == blockCount - 1) ? lastBlockSize : header.blockSize, 1, pTargetFile) != 1) {
 			THROW("Error writing block", rc);
 		}
 		printf("OK\n");
@@ -171,7 +148,6 @@ CATCH
 FINALLY
 
 	AUTOFREE(pBuffer);
-	AUTOFREE(pHeader);
 	AUTOCLOSE(pDataFile);
 	AUTOCLOSE(pTargetFile);
 	return exceptionId;

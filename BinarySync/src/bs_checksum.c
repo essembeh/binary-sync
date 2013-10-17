@@ -66,8 +66,10 @@ RETURN_CODE bs_checksum(int argc, char** argv) {
 	char* pUserData = NULL;
 	FILE* pTargetFile = NULL;
 	FILE* pOutputFile = NULL;
-	BSHeader* pHeader = NULL;
-	void* buffer = NULL;
+	void* pBuffer = NULL;
+
+	BSHeader header;
+	BSFooter footer;
 
 TRY
 
@@ -77,7 +79,8 @@ TRY
 									&pTargetFilename,
 									&pOutputFilename,
 									&pUserData)), "Invalid arguments", rc);
-	ASSERT((blockSize > 0), "Block size must be a positive value");
+
+	ASSERT_THROW((blockSize > 0), "Block size must be a positive value");
 
 	// Open target
 	if ((pTargetFile = fopen(pTargetFilename, "rb")) == NULL ) {
@@ -91,9 +94,9 @@ TRY
 	}
 
 	// Create header
-	pHeader = newHeader(CHECKSUM, totalSize, blockSize, pUserData);
+	initHeader(&header, CHECKSUM, totalSize, blockSize, pUserData);
 	printf("Output header\n");
-	printHeaderInformation(pHeader, TRUE);
+	printHeaderInformation(&header, TRUE);
 
 	// Open checksum file
 	if ((pOutputFile = fopen(pOutputFilename, "wb")) == NULL ) {
@@ -101,37 +104,39 @@ TRY
 	}
 
 	// Write header
-	if ((rc = writeHeader(pOutputFile, pHeader)) != 0) {
+	if ((rc = writeHeader(pOutputFile, &header)) != 0) {
 		THROW("Error writing checksum", rc);
 	}
 
-	uint64_t blockCount = getBlockCount(pHeader);
-	uint64_t lastBlockSize = getLastBlockSize(pHeader);
+	uint64_t blockCount = getBlockCount(&header);
 
-	printf("Total block count: %"PRIu64", last block size: %"PRIu64"\n", blockCount, lastBlockSize);
+	printf("Total block count: %"PRIu64"\n", blockCount);
 
 	// Read source file
-	buffer = malloc(blockSize);
+	pBuffer = malloc(blockSize);
 	uint64_t currentBlockId = 0;
 	uint32_t checksum = 0;
 	for(currentBlockId = 0; currentBlockId < blockCount; currentBlockId++) {
 		printProgress(currentBlockId, blockCount, "Computing checksum");
-		uint64_t bufferSize = currentBlockId == (blockCount - 1) ? lastBlockSize : blockSize;
-		if ((rc = fread(buffer, bufferSize, 1, pTargetFile)) != 1) {
-			THROW("Error reading target file", rc);
+		if ((rc = readBlock(pTargetFile, &header, currentBlockId, pBuffer)) != NO_ERROR) {
+			printf("Error reading block %"PRIu64"\n", currentBlockId);
+			THROW("Error reading block from target", rc);
 		}
-		checksum = getChecksum(buffer, bufferSize);
+		checksum = getChecksum(pBuffer, header.blockSize);
 		if (fwrite(&checksum, sizeof(uint32_t), 1, pOutputFile) != 1) {
 			THROW("Error writing checksum", WRITE_ERROR)
 		}
+	}
+	initFooter(&footer, blockCount);
+	if (fwrite(&footer, FOOTER_LEN, 1, pOutputFile) != 1) {
+		THROW("Error writing footer", WRITE_ERROR)
 	}
 
 CATCH
 
 FINALLY
 
-	AUTOFREE(buffer);
-	AUTOFREE(pHeader);
+	AUTOFREE(pBuffer);
 	AUTOCLOSE(pOutputFile);
 	AUTOCLOSE(pTargetFile);
 
