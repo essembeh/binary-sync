@@ -12,10 +12,9 @@
 #include "bsheader.h"
 
 int bs_info(int argc, char** argv) {
-	int i;
 	BSHeader header;
 	BSFooter footer;
-	for (i = 1; i < argc; i++) {
+	for (int i = 1; i < argc; i++) {
 		char* filename = argv[i];
 		FILE* file = fopen(filename, "r");
 		if (file != NULL) {
@@ -24,7 +23,7 @@ int bs_info(int argc, char** argv) {
 				printf("%s: invalid file, error: %d\n", filename, rc);
 			} else {
 				printf("Header information of file: %s\n", filename);
-				printHeaderInformation(&header, TRUE);
+				printHeaderInformation(&header, true);
 				printFooterInformation(&footer);
 			}
 		} else {

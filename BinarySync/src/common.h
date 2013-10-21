@@ -13,10 +13,6 @@
 #include "error.h"
 
 
-#define BOOL char
-#define TRUE 1
-#define FALSE 0
-
 #define TRY \
 	char* exceptionMessage = NULL; \
 	RETURN_CODE exceptionId = NO_ERROR;

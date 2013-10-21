@@ -72,7 +72,6 @@ RETURN_CODE bs_checksum(int argc, char** argv) {
 	BSFooter footer;
 
 TRY
-
 	uint64_t blockSize = 0;
 	CHECK_RC_THROW((rc = parse_args(argc, argv,
 									&blockSize,
@@ -96,7 +95,7 @@ TRY
 	// Create header
 	initHeader(&header, CHECKSUM, totalSize, blockSize, pUserData);
 	printf("Output header\n");
-	printHeaderInformation(&header, TRUE);
+	printHeaderInformation(&header, true);
 
 	// Open checksum file
 	if ((pOutputFile = fopen(pOutputFilename, "wb")) == NULL ) {
@@ -114,9 +113,8 @@ TRY
 
 	// Read source file
 	pBuffer = malloc(blockSize);
-	uint64_t currentBlockId = 0;
 	uint32_t checksum = 0;
-	for(currentBlockId = 0; currentBlockId < blockCount; currentBlockId++) {
+	for(uint64_t currentBlockId = 0; currentBlockId < blockCount; currentBlockId++) {
 		printProgress(currentBlockId, blockCount, "Computing checksum");
 		if ((rc = readBlock(pTargetFile, &header, currentBlockId, pBuffer)) != NO_ERROR) {
 			printf("Error reading block %"PRIu64"\n", currentBlockId);
@@ -135,7 +133,6 @@ TRY
 CATCH
 
 FINALLY
-
 	AUTOFREE(pBuffer);
 	AUTOCLOSE(pOutputFile);
 	AUTOCLOSE(pTargetFile);

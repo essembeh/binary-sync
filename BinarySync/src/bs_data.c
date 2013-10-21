@@ -106,7 +106,6 @@ RETURN_CODE bs_data(int argc, char** argv) {
 	void* pBuffer = NULL;
 
 TRY
-
 	if ((rc = parse_args(argc, argv,
 						 &pRemoteChecksumFilename,
 						 &pMasterChecksumFilename,
@@ -142,7 +141,7 @@ TRY
 		pUserdata = masterHeader.pUserData;
 	}
 	initHeader(&outputHeader, DATA, masterHeader.totalSize, masterHeader.blockSize, pUserdata);
-	printHeaderInformation(&outputHeader, TRUE);
+	printHeaderInformation(&outputHeader, true);
 
 	// Open output file
 	if ((pOutputFile = fopen(pOutputFilename, "wb")) == NULL) {
@@ -165,13 +164,12 @@ TRY
 		THROW("Cannot set position", rc);
 	}
 
-	uint64_t currentBlock;
 	uint32_t leftChecksum, rightChecksum;
 	uint64_t blockCount = getBlockCount(&outputHeader);
 	uint64_t diffCount = 0;
 	pBuffer = malloc(outputHeader.blockSize);
 	printf("Block count: %"PRIu64"\n", blockCount);
-	for (currentBlock = 0; currentBlock < blockCount; currentBlock++) {
+	for (uint64_t currentBlock = 0; currentBlock < blockCount; currentBlock++) {
 		printProgress(currentBlock + 1, blockCount, "Compare checksums");
 		if (fread(&leftChecksum,  sizeof(uint32_t), 1, pRemoteChecksumFile)  != 1 ||
 			fread(&rightChecksum, sizeof(uint32_t), 1, pMasterChecksumFile) != 1) {

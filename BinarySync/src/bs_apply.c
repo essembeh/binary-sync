@@ -82,7 +82,6 @@ RETURN_CODE getDataBlockCount(BSHeader* pHeader, FILE* pDataFile, uint64_t* opBl
 }
 
 RETURN_CODE bs_apply(int argc, char** argv) {
-
 	RETURN_CODE rc = 0;
 	char* pDataFilename = NULL;
 	char* pTargetFilename = NULL;
@@ -94,7 +93,6 @@ RETURN_CODE bs_apply(int argc, char** argv) {
 	BSFooter footer;
 
 TRY
-
 	if ((rc = parse_args(argc, argv,
 						 &pDataFilename,
 						 &pTargetFilename)) != 0) {
@@ -109,7 +107,7 @@ TRY
 	if ((rc = readHeaderFooter(pDataFile, &header, &footer)) != NO_ERROR) {
 		THROW("Error reading header and footer", rc);
 	}
-	printHeaderInformation(&header, TRUE);
+	printHeaderInformation(&header, true);
 	printFooterInformation(&footer);
 
 	// Open target file
@@ -132,8 +130,7 @@ TRY
 	uint64_t blockCount = getBlockCount(&header);
 	uint64_t lastBlockSize = getLastBlockSize(&header);
 	uint64_t blockId;
-	uint64_t i;
-	for (i = 0; i < footer.itemCount; ++i) {
+	for (uint64_t i = 0; i < footer.itemCount; ++i) {
 		// Read block Id
 		if (fread(&blockId, sizeof(uint64_t), 1, pDataFile) != 1) {
 			THROW("Cannot read from data file", READ_ERROR);
@@ -154,7 +151,6 @@ TRY
 CATCH
 
 FINALLY
-
 	AUTOFREE(pBuffer);
 	AUTOCLOSE(pDataFile);
 	AUTOCLOSE(pTargetFile);

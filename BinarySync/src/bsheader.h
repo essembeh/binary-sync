@@ -9,6 +9,8 @@
 
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdbool.h>
+
 #include "error.h"
 #include "common.h"
 
@@ -44,7 +46,7 @@ RETURN_CODE checkTag(BSHeader* pHeader, BSFooter* pFooter);
 RETURN_CODE writeTag(BSHeader* pHeader, BSFooter* pFooter);
 RETURN_CODE fseekAfterHeader(FILE* input);
 
-void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString);
+void printHeaderInformation(BSHeader* pHeader, bool printUserDataAsString);
 void printFooterInformation(BSFooter* pFooter);
 
 uint64_t getBlockCount(BSHeader* pHeader);

@@ -40,7 +40,7 @@ RETURN_CODE updateUserData(BSHeader* pHeader, char* pUserData) {
 	CHECK_PTR_RETURN(pHeader, ILLEGAL_ARG);
 	memset(pHeader->pUserData, 0, USER_DATA_LEN);
 	if (pUserData != NULL && strlen(pUserData) < USER_DATA_LEN) {
-		memccpy(pHeader->pUserData, pUserData, 1, strlen(pUserData));
+		memcpy(pHeader->pUserData, pUserData, strlen(pUserData));
 	}
 	return NO_ERROR;
 }
@@ -156,7 +156,7 @@ RETURN_CODE fseekAfterHeader(FILE* input) {
 	return NO_ERROR;
 }
 
-void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString) {
+void printHeaderInformation(BSHeader* pHeader, bool printUserDataAsString) {
 	if (pHeader != NULL) {
 		printf("\t%16s: %lu\n", "Size of header", HEADER_LEN);
 		printf("\t%16s: %"PRIu8"\n", "Version", pHeader->version);
@@ -174,7 +174,7 @@ void printHeaderInformation(BSHeader* pHeader, BOOL printUserDataAsString) {
 		printf("\t%16s: %"PRIu64"\n", "Block size", pHeader->blockSize);
 		printf("\t%16s: %"PRIu64"\n", "Block count", getBlockCount(pHeader));
 		printf("\t%16s: %"PRIu64"\n", "Item size", getItemSize(pHeader));
-		if (pHeader->pUserData != NULL && printUserDataAsString == TRUE) {
+		if (pHeader->pUserData != NULL && printUserDataAsString == true) {
 			printf("\t%16s: %d\n", "User data length", USER_DATA_LEN);
 			printf("\t%16s: %s\n", "User data", pHeader->pUserData);
 		}
