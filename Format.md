@@ -11,11 +11,9 @@
 
 ### DESCRIPTION
 Used to identify the file, it contains informations about the original file, its size, the block size used to compute hashes or transmit data.  
-It can also contain extra informations for example to identify the file.  
-The header should be the same along all the process, from the snapshot request to the patch (user data are not updated by default).
-Hash size depends on the hash function used
-* size of hash with Adler32: 4 bytes 
-* size of hash with CRC32: 4 bytes
+It can also contain extra informations for example to identify the target file.  
+The BLOCK_SIZE must be equal along the workflow, to compare two checksum files, to generate data file, to apply data.  
+The only checksum method implemented for now is Adler32, the size of a hach is 4 bytes.
 
 ### FIELDS
     byte[2]    "BS"            arbitrary string
