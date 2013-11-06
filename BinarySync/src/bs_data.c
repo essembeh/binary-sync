@@ -164,25 +164,25 @@ TRY
 		THROW("Cannot set position", rc);
 	}
 
-	uint32_t leftChecksum, rightChecksum;
+	uint32_t remoteChecksum, masterChecksum;
 	uint64_t blockCount = getBlockCount(&outputHeader);
 	uint64_t diffCount = 0;
 	pBuffer = malloc(outputHeader.blockSize);
 	printf("Block count: %"PRIu64"\n", blockCount);
 	for (uint64_t currentBlock = 0; currentBlock < blockCount; currentBlock++) {
 		printProgress(currentBlock + 1, blockCount, "Compare checksums");
-		if (fread(&leftChecksum,  sizeof(uint32_t), 1, pRemoteChecksumFile)  != 1 ||
-			fread(&rightChecksum, sizeof(uint32_t), 1, pMasterChecksumFile) != 1) {
+		if (fread(&remoteChecksum,  sizeof(uint32_t), 1, pRemoteChecksumFile)  != 1 ||
+			fread(&masterChecksum, sizeof(uint32_t), 1, pMasterChecksumFile) != 1) {
 			THROW("Cannot read from checksum file", 100);
 		}
-		if (leftChecksum != rightChecksum) {
-			printf("Checksum are different for block %"PRIu64" (%"PRIu32" != %"PRIu32")\n", currentBlock, leftChecksum, rightChecksum);
+		if (remoteChecksum != masterChecksum) {
+			printf("Checksum are different for block %"PRIu64" (%"PRIu32" != %"PRIu32")\n", currentBlock, masterChecksum, remoteChecksum);
 			CHECK_RC_THROW(readBlock(pTargetFile, &outputHeader, currentBlock, pBuffer), "Error reading target", READ_ERROR);
 			// Check if block have valid checksum
 			uint32_t currentChecksum = getChecksum(pBuffer, outputHeader.blockSize);
-			if (currentChecksum != leftChecksum) {
+			if (currentChecksum != masterChecksum) {
 				printf("  /!\\ Block %"PRIu64" from target is %"PRIu32" and should be %"PRIu32"\n",
-						currentBlock, currentChecksum, leftChecksum);
+						currentBlock, currentChecksum, masterChecksum);
 				THROW("Invalid checksum for block", ILLEGAL_STATE);
 			}
 			if (fwrite(&currentBlock, sizeof(uint64_t),       1, pOutputFile) != 1 ||
