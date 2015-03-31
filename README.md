@@ -14,7 +14,7 @@ Supposing the *master* has the version B and the *remote* has the version A, you
 1. The *remote* builds a **checksum file** and sends it to the master
 2. The *master* builds its own **checksum file** 
 3. Comparing the two files, the *master* write needed blocks data in a **data file**
-4. Tthe *remote* can write blocks from the **data file** 
+4. The *remote* can write blocks from the **data file** 
 
 Here are the convetion fot file extensions
 
