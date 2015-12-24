@@ -51,11 +51,6 @@ RETURN_CODE checkHeaders(BSHeader* pHeader, FILE* pTagetFile) {
 	if (pHeader->type != DATA) {
 		return -1;
 	}
-	uint64_t fileSize;
-	CHECK_RC_RETURN(getFileSize(pTagetFile, &fileSize), -2);
-	if (fileSize != pHeader->totalSize) {
-		return -3;
-	}
 	return NO_ERROR;
 }
 
@@ -130,6 +125,7 @@ TRY
 	uint64_t blockCount = getBlockCount(&header);
 	uint64_t lastBlockSize = getLastBlockSize(&header);
 	uint64_t blockId;
+	truncate(pTargetFilename, header.totalSize);
 	for (uint64_t i = 0; i < footer.itemCount; ++i) {
 		// Read block Id
 		if (fread(&blockId, sizeof(uint64_t), 1, pDataFile) != 1) {

@@ -77,11 +77,8 @@ int checkHeaders(BSHeader* pHeaderRemote, BSHeader* pHeaderMaster) {
 	if (pHeaderRemote->blockSize != pHeaderMaster->blockSize) {
 		return -2;
 	}
-	if (pHeaderRemote->totalSize != pHeaderMaster->totalSize) {
-		return -3;
-	}
 	if (pHeaderRemote->type != pHeaderMaster->type && pHeaderMaster->type != CHECKSUM) {
-		return -4;
+		return -3;
 	}
 	return 0;
 }
@@ -166,16 +163,24 @@ TRY
 
 	uint32_t remoteChecksum, masterChecksum;
 	uint64_t blockCount = getBlockCount(&outputHeader);
+	uint64_t remoteBlockCount = getBlockCount(&remoteHeader);
 	uint64_t diffCount = 0;
 	pBuffer = malloc(outputHeader.blockSize);
 	printf("Block count: %"PRIu64"\n", blockCount);
 	for (uint64_t currentBlock = 0; currentBlock < blockCount; currentBlock++) {
 		printProgress(currentBlock + 1, blockCount, "Compare checksums");
-		if (fread(&remoteChecksum,  sizeof(uint32_t), 1, pRemoteChecksumFile)  != 1 ||
-			fread(&masterChecksum, sizeof(uint32_t), 1, pMasterChecksumFile) != 1) {
+
+		if (currentBlock < remoteBlockCount) {
+			if (fread(&remoteChecksum,  sizeof(uint32_t), 1, pRemoteChecksumFile)  != 1) {
+				THROW("Cannot read from checksum file", 100);
+			}
+		}
+		
+		if (fread(&masterChecksum,  sizeof(uint32_t), 1, pMasterChecksumFile)  != 1) {
 			THROW("Cannot read from checksum file", 100);
 		}
-		if (remoteChecksum != masterChecksum) {
+
+		if (currentBlock >= remoteBlockCount || remoteChecksum != masterChecksum) {
 			printf("Checksum are different for block %"PRIu64" (%"PRIu32" != %"PRIu32")\n", currentBlock, masterChecksum, remoteChecksum);
 			CHECK_RC_THROW(readBlock(pTargetFile, &outputHeader, currentBlock, pBuffer), "Error reading target", READ_ERROR);
 			// Check if block have valid checksum
