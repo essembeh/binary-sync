@@ -1,7 +1,7 @@
 ## Manual for binary-sync tools
 
 ---
-Here are the convetion for file extensions
+Here are the conventions for file extensions:
 
 * **.sum** will represent a **checksum file**
 * **.data** will represent a **data file**
